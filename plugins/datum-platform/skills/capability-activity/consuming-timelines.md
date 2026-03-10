@@ -484,7 +484,39 @@ spec:
 | `objectRef.resource` | Resource types (plural) |
 | `objectRef.namespace` | Target namespaces |
 | `objectRef.apiGroup` | API groups |
+| `objectRef.name` | Resource names |
 | `responseStatus.code` | HTTP status codes |
+
+---
+
+## Event Queries
+
+For direct access to Kubernetes events (up to 60 days), use EventQuery with field selectors:
+
+```yaml
+apiVersion: activity.miloapis.com/v1alpha1
+kind: EventQuery
+spec:
+  fieldSelector: "regarding.kind=HTTPProxy,type=Warning"
+  limit: 100
+```
+
+### Supported Event Field Selectors
+
+| Field | Description |
+|-------|-------------|
+| `metadata.name` | Event name |
+| `metadata.namespace` | Event namespace |
+| `metadata.uid` | Event UID |
+| `regarding.apiVersion` | Resource API version |
+| `regarding.kind` | Resource kind |
+| `regarding.namespace` | Resource namespace |
+| `regarding.name` | Resource name |
+| `regarding.uid` | Resource UID |
+| `reason` | Event reason code |
+| `type` | Normal or Warning |
+| `source.component` | Source component |
+| `reportingComponent` | Reporting controller |
 
 ---
 
@@ -499,8 +531,8 @@ spec:
   timeRange:
     start: "now-7d"
   facets:
-    - field: involvedObject.kind
-    - field: involvedObject.namespace
+    - field: regarding.kind
+    - field: regarding.namespace
     - field: reason
     - field: type
     - field: source.component
@@ -510,8 +542,8 @@ spec:
 
 | Field | Description |
 |-------|-------------|
-| `involvedObject.kind` | Resource kinds |
-| `involvedObject.namespace` | Namespaces |
+| `regarding.kind` | Resource kinds |
+| `regarding.namespace` | Namespaces |
 | `reason` | Event reason codes (Ready, Failed, etc.) |
 | `type` | Normal or Warning |
 | `source.component` | Source controller |

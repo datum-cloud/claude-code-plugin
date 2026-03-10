@@ -62,12 +62,15 @@ spec:
 
   # Rules for audit log entries
   auditRules:
-    - match: "<CEL expression>"
-      summary: "<template with {{ expressions }}>"
+    - name: "<unique-identifier>"       # Required: unique within the policy
+      description: "<human explanation>" # Optional: what this rule captures
+      match: "<CEL expression>"          # Required: boolean CEL expression
+      summary: "<template with {{ }}>"   # Required: CEL template
 
   # Rules for Kubernetes events (optional)
   eventRules:
-    - match: "<CEL expression>"
+    - name: "<unique-identifier>"
+      match: "<CEL expression>"
       summary: "<template>"
 ```
 
@@ -85,27 +88,34 @@ spec:
 
   auditRules:
     # Creation
-    - match: "audit.verb == 'create'"
+    - name: resource-created
+      match: "audit.verb == 'create'"
       summary: "{{ actor }} created {{ link(kind + ' ' + audit.objectRef.name, audit.responseObject) }}"
 
     # Deletion
-    - match: "audit.verb == 'delete'"
+    - name: resource-deleted
+      match: "audit.verb == 'delete'"
       summary: "{{ actor }} deleted {{ kind }} {{ audit.objectRef.name }}"
 
     # Update (excludes status-only updates)
-    - match: "audit.verb in ['update', 'patch'] && audit.objectRef.subresource == ''"
+    - name: resource-updated
+      description: "Captures spec changes, excludes status-only updates"
+      match: "audit.verb in ['update', 'patch'] && audit.objectRef.subresource == ''"
       summary: "{{ actor }} updated {{ link(kind + ' ' + audit.objectRef.name, audit.objectRef) }}"
 
     # Status updates (if you want to track them)
-    - match: "audit.objectRef.subresource == 'status'"
+    - name: status-changed
+      match: "audit.objectRef.subresource == 'status'"
       summary: "{{ link(kind + ' ' + audit.objectRef.name, audit.objectRef) }} status changed"
 
   eventRules:
     # Controller events
-    - match: "event.reason == 'Ready'"
+    - name: resource-ready
+      match: "event.reason == 'Ready'"
       summary: "{{ link(kind + ' ' + event.regarding.name, event.regarding) }} is now ready"
 
-    - match: "event.reason == 'Failed'"
+    - name: resource-failed
+      match: "event.reason == 'Failed'"
       summary: "{{ link(kind + ' ' + event.regarding.name, event.regarding) }} failed: {{ event.message }}"
 ```
 
@@ -165,17 +175,19 @@ summary: "{{ actor }} scaled {{ link(kind + ' ' + audit.objectRef.name, audit.ob
 | Variable | Type | Description |
 |----------|------|-------------|
 | `actor` | string | Resolved display name for the user/SA |
+| `actorRef` | map | Actor reference with `type` and `name` (useful with `link()`) |
 | `kind` | string | Resource kind from policy spec |
-| `audit` | object | Full audit.Event from API server |
-| `audit.verb` | string | create, update, patch, delete, etc. |
-| `audit.objectRef` | object | Target resource reference |
+| `audit` | object | Full audit event object |
+| `audit.verb` | string | create, update, patch, delete, get, list, watch |
+| `audit.objectRef` | object | Target resource reference (apiVersion, apiGroup, resource, kind, namespace, name, uid) |
 | `audit.objectRef.name` | string | Resource name |
 | `audit.objectRef.namespace` | string | Resource namespace |
 | `audit.objectRef.subresource` | string | Subresource name or empty |
-| `audit.user` | object | Authenticated user info |
+| `audit.user` | object | Authenticated user info (username, uid, groups, extra) |
 | `audit.user.username` | string | User identifier |
-| `audit.responseObject` | object | The created/updated resource |
-| `audit.responseStatus` | object | HTTP response status |
+| `audit.responseObject` | object | The created/updated resource (full object as map) |
+| `audit.requestObject` | object | The request payload sent by the client |
+| `audit.responseStatus` | object | HTTP response status (code, message, reason) |
 
 ### The link() Function
 
@@ -226,14 +238,18 @@ Event rules translate Kubernetes events emitted by your controllers into activit
 
 | Variable | Type | Description |
 |----------|------|-------------|
-| `event` | object | Full core/v1 Event object |
+| `event` | object | Full events/v1 Event object |
 | `event.reason` | string | Event reason code |
 | `event.type` | string | Normal or Warning |
 | `event.message` | string | Event message text |
 | `event.regarding` | object | Resource the event is about |
 | `event.regarding.name` | string | Resource name |
 | `event.regarding.namespace` | string | Resource namespace |
-| `actor` | string | Always "System" for events |
+| `event.annotations` | map | Event annotations (structured data from controllers) |
+| `event.reportingController` | string | Controller that reported the event |
+| `event.eventTime` | string | When the event occurred |
+| `actor` | string | Reporting controller or source component name |
+| `actorRef` | map | Actor reference with `type` and `name` fields |
 | `kind` | string | Resource kind from policy spec |
 
 ### Event Summary Examples
@@ -374,9 +390,11 @@ spec:
       apiGroup: myservice.miloapis.com
       kind: MyResource
     auditRules:
-      - match: "audit.verb == 'create'"
+      - name: resource-created
+        match: "audit.verb == 'create'"
         summary: "{{ actor }} created {{ link(kind + ' ' + audit.objectRef.name, audit.responseObject) }}"
-      - match: "audit.verb == 'delete'"
+      - name: resource-deleted
+        match: "audit.verb == 'delete'"
         summary: "{{ actor }} deleted {{ kind }} {{ audit.objectRef.name }}"
 
   inputs:
@@ -500,29 +518,37 @@ spec:
     kind: Instance
 
   auditRules:
-    - match: "audit.verb == 'create'"
+    - name: instance-created
+      match: "audit.verb == 'create'"
       summary: "{{ actor }} created {{ link('instance ' + audit.objectRef.name, audit.responseObject) }}"
 
-    - match: "audit.verb == 'delete'"
+    - name: instance-deleted
+      match: "audit.verb == 'delete'"
       summary: "{{ actor }} deleted instance {{ audit.objectRef.name }}"
 
-    - match: "audit.verb in ['update', 'patch'] && audit.objectRef.subresource == ''"
+    - name: instance-updated
+      match: "audit.verb in ['update', 'patch'] && audit.objectRef.subresource == ''"
       summary: "{{ actor }} updated {{ link('instance ' + audit.objectRef.name, audit.objectRef) }}"
 
-    - match: "audit.objectRef.subresource == 'start'"
+    - name: instance-started
+      match: "audit.objectRef.subresource == 'start'"
       summary: "{{ actor }} started {{ link('instance ' + audit.objectRef.name, audit.objectRef) }}"
 
-    - match: "audit.objectRef.subresource == 'stop'"
+    - name: instance-stopped
+      match: "audit.objectRef.subresource == 'stop'"
       summary: "{{ actor }} stopped {{ link('instance ' + audit.objectRef.name, audit.objectRef) }}"
 
   eventRules:
-    - match: "event.reason == 'Running'"
+    - name: instance-running
+      match: "event.reason == 'Running'"
       summary: "{{ link('Instance ' + event.regarding.name, event.regarding) }} is now running"
 
-    - match: "event.reason == 'Stopped'"
+    - name: instance-stopped-event
+      match: "event.reason == 'Stopped'"
       summary: "{{ link('Instance ' + event.regarding.name, event.regarding) }} has stopped"
 
-    - match: "event.reason == 'ProvisioningFailed'"
+    - name: instance-provisioning-failed
+      match: "event.reason == 'ProvisioningFailed'"
       summary: "{{ link('Instance ' + event.regarding.name, event.regarding) }} failed to provision: {{ event.message }}"
 ```
 
@@ -539,23 +565,29 @@ spec:
     kind: HTTPProxy
 
   auditRules:
-    - match: "audit.verb == 'create'"
+    - name: proxy-created
+      match: "audit.verb == 'create'"
       summary: "{{ actor }} created {{ link('HTTPProxy ' + audit.objectRef.name, audit.responseObject) }}"
 
-    - match: "audit.verb == 'delete'"
+    - name: proxy-deleted
+      match: "audit.verb == 'delete'"
       summary: "{{ actor }} deleted HTTPProxy {{ audit.objectRef.name }}"
 
-    - match: "audit.verb in ['update', 'patch'] && audit.objectRef.subresource == ''"
+    - name: proxy-updated
+      match: "audit.verb in ['update', 'patch'] && audit.objectRef.subresource == ''"
       summary: "{{ actor }} updated {{ link('HTTPProxy ' + audit.objectRef.name, audit.objectRef) }}"
 
   eventRules:
-    - match: "event.reason == 'Programmed'"
+    - name: proxy-programmed
+      match: "event.reason == 'Programmed'"
       summary: "{{ link('HTTPProxy ' + event.regarding.name, event.regarding) }} is now programmed"
 
-    - match: "event.reason == 'CertificateIssued'"
+    - name: proxy-cert-issued
+      match: "event.reason == 'CertificateIssued'"
       summary: "Certificate issued for {{ link('HTTPProxy ' + event.regarding.name, event.regarding) }}"
 
-    - match: "event.reason == 'CertificateFailed'"
+    - name: proxy-cert-failed
+      match: "event.reason == 'CertificateFailed'"
       summary: "Certificate failed for {{ link('HTTPProxy ' + event.regarding.name, event.regarding) }}: {{ event.message }}"
 ```
 
@@ -572,13 +604,16 @@ spec:
     kind: Role
 
   auditRules:
-    - match: "audit.verb == 'create'"
+    - name: role-created
+      match: "audit.verb == 'create'"
       summary: "{{ actor }} created role {{ link(audit.objectRef.name, audit.responseObject) }}"
 
-    - match: "audit.verb == 'delete'"
+    - name: role-deleted
+      match: "audit.verb == 'delete'"
       summary: "{{ actor }} deleted role {{ audit.objectRef.name }}"
 
-    - match: "audit.verb in ['update', 'patch'] && audit.objectRef.subresource == ''"
+    - name: role-updated
+      match: "audit.verb in ['update', 'patch'] && audit.objectRef.subresource == ''"
       summary: "{{ actor }} updated role {{ link(audit.objectRef.name, audit.objectRef) }}"
 ---
 apiVersion: activity.miloapis.com/v1alpha1
@@ -591,10 +626,12 @@ spec:
     kind: PolicyBinding
 
   auditRules:
-    - match: "audit.verb == 'create'"
+    - name: binding-created
+      match: "audit.verb == 'create'"
       summary: "{{ actor }} granted {{ link(audit.responseObject.spec.roleRef.name, audit.responseObject.spec.roleRef) }} to {{ audit.responseObject.spec.subject.name }}"
 
-    - match: "audit.verb == 'delete'"
+    - name: binding-deleted
+      match: "audit.verb == 'delete'"
       summary: "{{ actor }} revoked policy binding {{ audit.objectRef.name }}"
 ```
 
@@ -685,11 +722,52 @@ func TestActivityPolicy(t *testing.T) {
 
 ---
 
+## Step 9: Re-index After Policy Changes
+
+When you modify an ActivityPolicy (change summary templates, fix match expressions, add new rules), existing activities are not automatically updated. Create a **ReindexJob** to retroactively apply policy changes to historical data.
+
+### Create a ReindexJob
+
+```yaml
+apiVersion: activity.miloapis.com/v1alpha1
+kind: ReindexJob
+metadata:
+  name: reindex-myresource-summaries
+spec:
+  timeRange:
+    startTime: "now-30d"
+    endTime: "now"
+  policySelector:
+    names:
+      - myservice-myresource
+  config:
+    dryRun: true        # Preview first!
+  ttlSecondsAfterFinished: 3600
+```
+
+### Workflow
+
+1. **Dry run first** — Set `dryRun: true` to see what would change
+2. **Check progress** — `kubectl get reindexjob reindex-myresource-summaries -o yaml`
+3. **Run for real** — Create a new job with `dryRun: false`
+4. **Verify results** — Query activities to confirm updated summaries
+
+### Monitor Progress
+
+```bash
+kubectl get reindexjob reindex-myresource-summaries -o yaml
+```
+
+Look at `status.phase` (Pending → Running → Succeeded/Failed) and `status.progress` for detailed counters.
+
+---
+
 ## Checklist
 
 Before shipping activity integration:
 
 - [ ] ActivityPolicy created for each user-facing resource kind
+- [ ] Every rule has a unique `name` field
 - [ ] Policies cover create, update, and delete operations
 - [ ] Status/subresource updates handled appropriately (included or excluded)
 - [ ] Event rules added for controller state transitions
@@ -697,6 +775,7 @@ Before shipping activity integration:
 - [ ] Links use correct resource references
 - [ ] PolicyPreview tested with sample inputs
 - [ ] Policies deployed via Kustomize
+- [ ] ReindexJob created if updating existing policies (to backfill historical data)
 - [ ] Integration tests verify activity generation
 - [ ] Documented which operations generate activities
 
@@ -747,4 +826,4 @@ Ensure the resource reference in `link()` has correct:
 - name
 - namespace (for namespaced resources)
 
-Use `audit.responseObject` for creates (has full object), `audit.objectRef` for updates/deletes.
+Use `responseObject` for creates (has full object), `objectRef` for updates/deletes.

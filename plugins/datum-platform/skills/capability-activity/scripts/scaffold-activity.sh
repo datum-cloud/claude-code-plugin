@@ -34,32 +34,39 @@ spec:
 
   auditRules:
     # Resource creation
-    - match: "audit.verb == 'create'"
+    - name: ${KIND_LOWER}-created
+      match: "audit.verb == 'create'"
       summary: "{{ actor }} created {{ link(kind + ' ' + audit.objectRef.name, audit.responseObject) }}"
 
     # Resource deletion
-    - match: "audit.verb == 'delete'"
+    - name: ${KIND_LOWER}-deleted
+      match: "audit.verb == 'delete'"
       summary: "{{ actor }} deleted {{ kind }} {{ audit.objectRef.name }}"
 
     # Resource update (excluding status-only updates)
-    - match: "audit.verb in ['update', 'patch'] && audit.objectRef.subresource == ''"
+    - name: ${KIND_LOWER}-updated
+      match: "audit.verb in ['update', 'patch'] && audit.objectRef.subresource == ''"
       summary: "{{ actor }} updated {{ link(kind + ' ' + audit.objectRef.name, audit.objectRef) }}"
 
     # Uncomment to track status changes
-    # - match: "audit.objectRef.subresource == 'status'"
+    # - name: ${KIND_LOWER}-status-changed
+    #   match: "audit.objectRef.subresource == 'status'"
     #   summary: "{{ link(kind + ' ' + audit.objectRef.name, audit.objectRef) }} status changed"
 
   eventRules:
     # Ready state transition
-    - match: "event.reason == 'Ready'"
+    - name: ${KIND_LOWER}-ready
+      match: "event.reason == 'Ready'"
       summary: "{{ link(kind + ' ' + event.regarding.name, event.regarding) }} is now ready"
 
     # Failed state
-    - match: "event.reason == 'Failed'"
+    - name: ${KIND_LOWER}-failed
+      match: "event.reason == 'Failed'"
       summary: "{{ link(kind + ' ' + event.regarding.name, event.regarding) }} failed: {{ event.message }}"
 
     # Uncomment for warning events
-    # - match: "event.type == 'Warning'"
+    # - name: ${KIND_LOWER}-warning
+    #   match: "event.type == 'Warning'"
     #   summary: "Warning for {{ link(kind + ' ' + event.regarding.name, event.regarding) }}: {{ event.message }}"
 EOF
 
@@ -80,11 +87,14 @@ spec:
       apiGroup: ${API_GROUP}
       kind: ${KIND}
     auditRules:
-      - match: "audit.verb == 'create'"
+      - name: ${KIND_LOWER}-created
+        match: "audit.verb == 'create'"
         summary: "{{ actor }} created {{ link(kind + ' ' + audit.objectRef.name, audit.responseObject) }}"
-      - match: "audit.verb == 'delete'"
+      - name: ${KIND_LOWER}-deleted
+        match: "audit.verb == 'delete'"
         summary: "{{ actor }} deleted {{ kind }} {{ audit.objectRef.name }}"
-      - match: "audit.verb in ['update', 'patch'] && audit.objectRef.subresource == ''"
+      - name: ${KIND_LOWER}-updated
+        match: "audit.verb in ['update', 'patch'] && audit.objectRef.subresource == ''"
         summary: "{{ actor }} updated {{ link(kind + ' ' + audit.objectRef.name, audit.objectRef) }}"
 
   inputs:

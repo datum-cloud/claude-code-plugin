@@ -128,26 +128,33 @@ spec:
 
   # Rules for translating audit logs
   auditRules:
-    - match: "audit.verb == 'create'"
+    - name: resource-created
+      match: "audit.verb == 'create'"
       summary: "{{ actor }} created {{ link(kind + ' ' + audit.objectRef.name, audit.responseObject) }}"
 
-    - match: "audit.verb == 'delete'"
+    - name: resource-deleted
+      match: "audit.verb == 'delete'"
       summary: "{{ actor }} deleted {{ kind }} {{ audit.objectRef.name }}"
 
-    - match: "audit.verb in ['update', 'patch'] && audit.objectRef.subresource == ''"
+    - name: resource-updated
+      description: "Captures spec changes, excludes status-only updates"
+      match: "audit.verb in ['update', 'patch'] && audit.objectRef.subresource == ''"
       summary: "{{ actor }} updated {{ link(kind + ' ' + audit.objectRef.name, audit.objectRef) }}"
 
   # Rules for translating Kubernetes events
   eventRules:
-    - match: "event.reason == 'Programmed'"
+    - name: proxy-programmed
+      match: "event.reason == 'Programmed'"
       summary: "{{ link(kind + ' ' + event.regarding.name, event.regarding) }} is now programmed"
 ```
 
 #### Rule Structure
 
 Each rule has:
-- **match**: CEL expression returning boolean (determines if rule applies)
-- **summary**: CEL template with `{{ }}` expressions (generates summary text)
+- **name** (required): Unique identifier within the policy (e.g., `resource-created`, `status-updated`)
+- **description** (optional): Human-readable explanation of what the rule captures
+- **match** (required): CEL expression returning boolean (determines if rule applies)
+- **summary** (required): CEL template with `{{ }}` expressions (generates summary text)
 
 #### Rule Evaluation
 
@@ -177,6 +184,7 @@ spec:
   namespace: "my-project"       # Filter by namespace
   apiGroup: "otherservice.miloapis.com"  # Filter by API group
   resourceKind: "HTTPProxy"     # Filter by kind
+  resourceUID: "abc-123-def"    # Filter by specific resource UID
   actorName: "alice@example.com" # Filter by actor
 
   # Advanced filtering
@@ -344,6 +352,58 @@ status:
 
 ---
 
+### EventQuery (Ephemeral)
+
+An EventQuery searches Kubernetes events directly (up to 60 days of history). It uses standard Kubernetes field selector syntax for filtering.
+
+```yaml
+apiVersion: activity.miloapis.com/v1alpha1
+kind: EventQuery
+metadata:
+  name: recent-events
+spec:
+  # Standard Kubernetes field selector syntax
+  fieldSelector: "regarding.kind=HTTPProxy,reason=Failed"
+
+  # Pagination
+  limit: 100
+  continue: ""
+
+status:
+  results:
+    - # EventRecord objects (wrapped events/v1 Event)
+      regarding:
+        apiVersion: otherservice.miloapis.com/v1alpha1
+        kind: HTTPProxy
+        name: my-proxy
+        namespace: my-project
+      reason: Failed
+      type: Warning
+      note: "Failed to program: upstream not found"
+```
+
+#### Supported Field Selectors
+
+| Field | Description |
+|-------|-------------|
+| `metadata.name` | Event name |
+| `metadata.namespace` | Event namespace |
+| `metadata.uid` | Event UID |
+| `regarding.apiVersion` | Resource API version |
+| `regarding.kind` | Resource kind |
+| `regarding.namespace` | Resource namespace |
+| `regarding.name` | Resource name |
+| `regarding.uid` | Resource UID |
+| `regarding.fieldPath` | Resource field path |
+| `reason` | Event reason code |
+| `type` | Normal or Warning |
+| `source.component` | Source component |
+| `source.host` | Source host |
+| `reportingComponent` | Reporting controller |
+| `reportingInstance` | Reporting instance |
+
+---
+
 ### EventFacetQuery (Ephemeral)
 
 An EventFacetQuery retrieves distinct values from Kubernetes events, useful for building event filter UIs.
@@ -359,8 +419,8 @@ spec:
     end: "now"
 
   facets:
-    - field: involvedObject.kind
-    - field: involvedObject.namespace
+    - field: regarding.kind
+    - field: regarding.namespace
     - field: reason
       limit: 20
     - field: type
@@ -389,12 +449,80 @@ status:
 
 | Field | Description |
 |-------|-------------|
-| `involvedObject.kind` | Resource kinds events are about |
-| `involvedObject.namespace` | Namespaces of involved objects |
+| `regarding.kind` | Resource kinds events are about |
+| `regarding.namespace` | Namespaces of involved objects |
 | `reason` | Event reason codes (Ready, Failed, etc.) |
 | `type` | Event types (Normal, Warning) |
 | `source.component` | Source controller/component |
 | `namespace` | Event namespace |
+
+---
+
+### ReindexJob (Namespaced)
+
+A ReindexJob re-processes historical audit logs and events through current ActivityPolicy rules. Use this after modifying an ActivityPolicy to retroactively update existing activities.
+
+```yaml
+apiVersion: activity.miloapis.com/v1alpha1
+kind: ReindexJob
+metadata:
+  name: reindex-after-summary-change
+spec:
+  # Time range to re-process (required)
+  timeRange:
+    startTime: "now-30d"           # Relative or absolute
+    endTime: "now"
+
+  # Optional: limit to specific policies
+  policySelector:
+    names:
+      - networking-httpproxy       # By policy name
+    labelSelector:                 # Or by labels
+      matchLabels:
+        team: networking
+
+  # Optional: processing configuration
+  config:
+    batchSize: 500                 # Events per batch
+    rateLimit: 100                 # Events per second
+    dryRun: false                  # Preview without persisting
+
+  # Optional: auto-cleanup after completion
+  ttlSecondsAfterFinished: 3600   # Delete job 1 hour after finishing
+
+status:
+  phase: Running                   # Pending, Running, Succeeded, Failed
+  message: "Processing batch 17 of 30"
+  progress:
+    totalEvents: 15000
+    processedEvents: 8500
+    activitiesGenerated: 7200
+    errors: 3
+    currentBatch: 17
+    totalBatches: 30
+  startedAt: "2024-01-15T10:00:00Z"
+  completedAt: null
+  conditions:
+    - type: Complete
+      status: "False"
+```
+
+#### When to Use ReindexJob
+
+- **Updated summary templates** — Changed how activities read (e.g., improved wording)
+- **Added new rules** — Want historical events to match the new rule
+- **Fixed match expressions** — Corrected a rule that was matching too broadly or too narrowly
+- **Changed rule order** — First-match semantics mean order matters
+
+#### Dry Run
+
+Use `dryRun: true` to preview what a reindex would produce without modifying stored activities:
+
+```yaml
+spec:
+  config:
+    dryRun: true
+```
 
 ---
 
@@ -414,7 +542,8 @@ spec:
       apiGroup: myservice.miloapis.com
       kind: MyResource
     auditRules:
-      - match: "audit.verb == 'create'"
+      - name: resource-created
+        match: "audit.verb == 'create'"
         summary: "{{ actor }} created {{ kind }}"
 
   # Sample inputs to test against
@@ -436,6 +565,11 @@ spec:
           apiGroup: myservice.miloapis.com
           kind: MyResource
           name: test-resource
+
+  # Alternative: auto-fetch sample data from the cluster
+  # autoFetch:
+  #   namespace: my-project
+  #   limit: 10
 
 status:
   results:
@@ -463,7 +597,7 @@ status:
 Match expressions are pure CEL returning boolean:
 
 ```yaml
-# Audit context
+# Audit rule context
 audit.verb == 'create'
 audit.verb in ['update', 'patch']
 audit.objectRef.subresource == 'status'
@@ -471,7 +605,7 @@ audit.objectRef.subresource == ''
 audit.user.username.startsWith('system:')
 audit.responseStatus.code >= 400
 
-# Event context
+# Event rule context
 event.reason == 'Ready'
 event.type == 'Warning'
 event.regarding.name == 'my-resource'
@@ -499,20 +633,24 @@ summary: "{{ link(kind + ' ' + audit.objectRef.name, audit.responseObject) }}"
 
 | Variable | Context | Type | Description |
 |----------|---------|------|-------------|
-| `actor` | Both | string | Resolved display name |
-| `kind` | Both | string | Resource kind from policy |
-| `audit` | Audit | object | Full audit.Event |
-| `audit.verb` | Audit | string | API verb |
-| `audit.objectRef` | Audit | object | Target resource |
-| `audit.user` | Audit | object | Authenticated user |
-| `audit.responseObject` | Audit | object | Created/updated resource |
-| `audit.responseStatus` | Audit | object | HTTP response |
-| `event` | Event | object | Full core/v1 Event |
+| `actor` | Both | string | Resolved display name (email for users, controller name for system) |
+| `actorRef` | Both | map | Actor reference with `type` ("user", "serviceaccount", "controller") and `name` fields |
+| `kind` | Both | string | Resource kind from policy spec |
+| `audit` | Audit | object | Full audit event object |
+| `audit.verb` | Audit | string | API verb (create, update, patch, delete, get, list, watch) |
+| `audit.objectRef` | Audit | object | Target resource (apiVersion, apiGroup, resource, kind, namespace, name, uid) |
+| `audit.user` | Audit | object | Authenticated user (username, uid, groups, extra) |
+| `audit.responseObject` | Audit | object | Created/updated resource (full object as map) |
+| `audit.requestObject` | Audit | object | Request payload sent by the client |
+| `audit.responseStatus` | Audit | object | HTTP response (code, message, reason) |
+| `event` | Event | object | Full events/v1 Event object |
 | `event.reason` | Event | string | Event reason code |
 | `event.type` | Event | string | Normal or Warning |
-| `event.message` | Event | string | Event message |
-| `event.regarding` | Event | object | Target resource |
-| `event.annotations` | Event | map | Event annotations (for structured data) |
+| `event.message` | Event | string | Event message text |
+| `event.regarding` | Event | object | Target resource (apiVersion, kind, namespace, name, uid) |
+| `event.annotations` | Event | map | Event annotations (for structured data from controllers) |
+| `event.reportingController` | Event | string | Controller that reported the event |
+| `event.eventTime` | Event | string | When the event occurred |
 
 ### Accessing Event Annotations
 
@@ -562,12 +700,29 @@ spec:
 
 | Type | Description | Visibility |
 |------|-------------|------------|
+| `platform` | Infrastructure-level activities (events without tenant context) | Platform admins |
 | `global` | Platform-wide activities | Platform admins |
 | `organization` | Organization-scoped | Org members |
 | `project` | Project-scoped | Project members |
 | `user` | User-specific | Individual user |
 
-Tenant context is automatically determined from the resource's namespace hierarchy.
+Tenant context is automatically determined from the resource's namespace hierarchy and IAM extra fields. Event-sourced activities default to `platform` tenant type since Kubernetes events don't carry tenant context. Audit-sourced activities extract tenant from IAM extra fields (`iam.miloapis.com/parent-type`, `iam.miloapis.com/parent-name`).
+
+---
+
+## Activity Labels
+
+Activities are automatically labeled for efficient selection with label selectors:
+
+| Label | Values | Description |
+|-------|--------|-------------|
+| `activity.miloapis.com/origin-type` | `audit`, `event` | Whether activity came from audit log or Kubernetes event |
+| `activity.miloapis.com/change-source` | `human`, `system` | Whether a human or system initiated the change |
+| `activity.miloapis.com/api-group` | API group string | API group of the affected resource |
+| `activity.miloapis.com/resource-kind` | Kind string | Kind of the affected resource |
+| `activity.miloapis.com/event-reason` | Reason string | Event reason code (only present on event-sourced activities) |
+
+These labels enable efficient queries via standard Kubernetes label selectors in addition to CEL filter expressions.
 
 ---
 

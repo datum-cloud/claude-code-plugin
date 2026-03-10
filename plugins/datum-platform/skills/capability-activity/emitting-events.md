@@ -88,11 +88,11 @@ Every Kubernetes event has these key fields that ActivityPolicy can match:
 
 | Field | Description | ActivityPolicy Access |
 |-------|-------------|----------------------|
-| `reason` | Machine-readable code (PascalCase) | `event.reason` |
-| `type` | `Normal` or `Warning` | `event.type` |
-| `message` | Human-readable description | `event.message` |
-| `regarding` | Reference to affected resource | `event.regarding` |
-| `source.component` | Controller name | `event.source.component` |
+| `reason` | Machine-readable code (PascalCase) | `reason` |
+| `type` | `Normal` or `Warning` | `type` |
+| `message` | Human-readable description | `message` |
+| `regarding` | Reference to affected resource | `regarding` |
+| `source.component` | Controller name | `event.reportingController` |
 
 ### Emitting Events
 
@@ -479,7 +479,7 @@ func classifyError(err error) string {
 
 ### Accessing Annotations in ActivityPolicy
 
-ActivityPolicy templates access event annotations via `event.annotations`:
+ActivityPolicy templates access event annotations via `annotations`:
 
 ```yaml
 apiVersion: activity.miloapis.com/v1alpha1
@@ -493,28 +493,35 @@ spec:
 
   eventRules:
     # Use display name from annotation instead of metadata.name
-    - match: "event.reason == 'Ready'"
+    - name: resource-ready
+      match: "event.reason == 'Ready'"
       summary: "{{ link(event.annotations['activity.miloapis.com/display-name'], event.regarding) }} is ready"
 
     # Include structured values in summary
-    - match: "event.reason == 'ScaledUp'"
+    - name: resource-scaled-up
+      match: "event.reason == 'ScaledUp'"
       summary: "{{ link(event.annotations['activity.miloapis.com/display-name'], event.regarding) }} scaled from {{ event.annotations['activity.miloapis.com/old-value'] }} to {{ event.annotations['activity.miloapis.com/new-value'] }} replicas"
 
-    - match: "event.reason == 'ScaledDown'"
+    - name: resource-scaled-down
+      match: "event.reason == 'ScaledDown'"
       summary: "{{ link(event.annotations['activity.miloapis.com/display-name'], event.regarding) }} scaled down from {{ event.annotations['activity.miloapis.com/old-value'] }} to {{ event.annotations['activity.miloapis.com/new-value'] }} replicas"
 
     # User-friendly error messages based on category
-    - match: "event.reason == 'Failed' && event.annotations['activity.miloapis.com/error-category'] == 'quota_exceeded'"
+    - name: failed-quota-exceeded
+      match: "event.reason == 'Failed' && event.annotations['activity.miloapis.com/error-category'] == 'quota_exceeded'"
       summary: "{{ link(event.annotations['activity.miloapis.com/display-name'], event.regarding) }} could not complete: resource quota exceeded"
 
-    - match: "event.reason == 'Failed' && event.annotations['activity.miloapis.com/error-category'] == 'permission_denied'"
+    - name: failed-permission-denied
+      match: "event.reason == 'Failed' && event.annotations['activity.miloapis.com/error-category'] == 'permission_denied'"
       summary: "{{ link(event.annotations['activity.miloapis.com/display-name'], event.regarding) }} could not complete: insufficient permissions"
 
-    - match: "event.reason == 'Failed' && event.annotations['activity.miloapis.com/error-category'] == 'invalid_configuration'"
+    - name: failed-invalid-config
+      match: "event.reason == 'Failed' && event.annotations['activity.miloapis.com/error-category'] == 'invalid_configuration'"
       summary: "{{ link(event.annotations['activity.miloapis.com/display-name'], event.regarding) }} has invalid configuration"
 
     # Fallback for unclassified errors
-    - match: "event.reason == 'Failed'"
+    - name: failed-generic
+      match: "event.reason == 'Failed'"
       summary: "{{ link(event.annotations['activity.miloapis.com/display-name'], event.regarding) }} encountered an error"
 ```
 
@@ -617,11 +624,13 @@ Always handle cases where annotations might be missing:
 
 ```yaml
 eventRules:
-  # Prefer display-name, fall back to regarding.name
-  - match: "event.reason == 'Ready' && has(event.annotations['activity.miloapis.com/display-name'])"
+  # Prefer display-name, fall back to event.regarding.name
+  - name: ready-with-display-name
+    match: "event.reason == 'Ready' && has(event.annotations['activity.miloapis.com/display-name'])"
     summary: "{{ link(event.annotations['activity.miloapis.com/display-name'], event.regarding) }} is ready"
 
-  - match: "event.reason == 'Ready'"
+  - name: ready-fallback
+    match: "event.reason == 'Ready'"
     summary: "{{ link(kind + ' ' + event.regarding.name, event.regarding) }} is ready"
 ```
 
@@ -651,37 +660,45 @@ spec:
 
   eventRules:
     # Lifecycle events
-    - match: "event.reason == 'Ready'"
+    - name: resource-ready
+      match: "event.reason == 'Ready'"
       summary: "{{ link(kind + ' ' + event.regarding.name, event.regarding) }} is now ready"
 
-    - match: "event.reason == 'Progressing'"
+    - name: resource-progressing
+      match: "event.reason == 'Progressing'"
       summary: "{{ link(kind + ' ' + event.regarding.name, event.regarding) }} is being updated"
 
     # Provisioning events
-    - match: "event.reason == 'Provisioning'"
+    - name: provisioning-started
+      match: "event.reason == 'Provisioning'"
       summary: "{{ link(kind + ' ' + event.regarding.name, event.regarding) }} provisioning started"
 
-    - match: "event.reason == 'Provisioned'"
+    - name: provisioning-complete
+      match: "event.reason == 'Provisioned'"
       summary: "{{ link(kind + ' ' + event.regarding.name, event.regarding) }} provisioning complete"
 
-    - match: "event.reason == 'ProvisioningFailed'"
+    - name: provisioning-failed
+      match: "event.reason == 'ProvisioningFailed'"
       summary: "{{ link(kind + ' ' + event.regarding.name, event.regarding) }} failed to provision: {{ event.message }}"
 
     # Scaling events
-    - match: "event.reason == 'ScaledUp'"
+    - name: scaled-up
+      match: "event.reason == 'ScaledUp'"
       summary: "{{ link(kind + ' ' + event.regarding.name, event.regarding) }} scaled up"
 
-    - match: "event.reason == 'ScaledDown'"
+    - name: scaled-down
+      match: "event.reason == 'ScaledDown'"
       summary: "{{ link(kind + ' ' + event.regarding.name, event.regarding) }} scaled down"
 
     # Warning events (catch-all for unmatched warnings)
-    - match: "event.type == 'Warning' && !event.reason.startsWith('Scaling')"
+    - name: warning-catchall
+      match: "event.type == 'Warning' && !event.reason.startsWith('Scaling')"
       summary: "Warning for {{ link(kind + ' ' + event.regarding.name, event.regarding) }}: {{ event.message }}"
 ```
 
 ### Including Message Content
 
-Use `event.message` to include the message in the activity summary:
+Use `message` to include the message in the activity summary:
 
 ```yaml
 # Full message for errors

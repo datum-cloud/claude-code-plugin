@@ -26,7 +26,7 @@ All activity resources use the `activity.miloapis.com` API group with version `v
 
 ## Core Resource Types
 
-The activity system has **six resource types**:
+The activity system has **ten resource types**:
 
 | Resource | Scope | Purpose |
 |----------|-------|---------|
@@ -36,6 +36,9 @@ The activity system has **six resource types**:
 | **ActivityFacetQuery** | Ephemeral | Get distinct values for filter dropdowns |
 | **AuditLogQuery** | Ephemeral | Query raw audit log entries directly |
 | **AuditLogFacetsQuery** | Ephemeral | Get facets from raw audit logs |
+| **EventQuery** | Ephemeral | Search Kubernetes events with field selectors |
+| **EventFacetQuery** | Ephemeral | Get distinct values from Kubernetes events |
+| **ReindexJob** | Namespaced | Re-process historical audit/event data after policy changes |
 | **PolicyPreview** | Ephemeral | Test policies against sample inputs |
 
 Read `concepts.md` for detailed explanations of each resource type.
@@ -82,14 +85,18 @@ spec:
     apiGroup: myservice.miloapis.com
     kind: MyResource
   auditRules:
-    - match: "audit.verb == 'create'"
+    - name: resource-created
+      match: "audit.verb == 'create'"
       summary: "{{ actor }} created {{ link(kind + ' ' + audit.objectRef.name, audit.responseObject) }}"
-    - match: "audit.verb == 'delete'"
+    - name: resource-deleted
+      match: "audit.verb == 'delete'"
       summary: "{{ actor }} deleted {{ kind }} {{ audit.objectRef.name }}"
-    - match: "audit.verb in ['update', 'patch']"
+    - name: resource-updated
+      match: "audit.verb in ['update', 'patch']"
       summary: "{{ actor }} updated {{ link(kind + ' ' + audit.objectRef.name, audit.objectRef) }}"
   eventRules:
-    - match: "event.reason == 'Ready'"
+    - name: resource-ready
+      match: "event.reason == 'Ready'"
       summary: "{{ link(kind + ' ' + event.regarding.name, event.regarding) }} is now ready"
 ```
 
@@ -112,7 +119,8 @@ spec:
       apiGroup: myservice.miloapis.com
       kind: MyResource
     auditRules:
-      - match: "audit.verb == 'create'"
+      - name: resource-created
+        match: "audit.verb == 'create'"
         summary: "{{ actor }} created MyResource"
   inputs:
     - type: audit
@@ -281,7 +289,7 @@ status:
 Pure CEL returning boolean:
 
 ```yaml
-# Audit log variables
+# Audit rule variables
 audit.verb == 'create'
 audit.verb in ['update', 'patch']
 audit.objectRef.subresource == 'status'
@@ -289,7 +297,7 @@ audit.objectRef.subresource == 'scale'
 audit.user.username.startsWith('system:')
 audit.responseStatus.code >= 400
 
-# Event variables
+# Event rule variables
 event.reason == 'Ready'
 event.type == 'Warning'
 event.regarding.name == 'my-resource'
@@ -308,24 +316,90 @@ summary: "{{ link(kind + ' ' + audit.objectRef.name, audit.responseObject) }}"
 
 # Conditional text
 summary: "{{ audit.user.username.startsWith('system:') ? 'System' : actor }} updated {{ kind }}"
+
+# Access request payload (what the client sent)
+summary: "{{ actor }} updated {{ kind }} replicas to {{ audit.requestObject.spec.replicas }}"
+
+# Use actorRef for linking to the actor
+summary: "{{ link(actor, actorRef) }} created {{ kind }}"
 ```
 
 ### Available Variables
 
 | Context | Variable | Description |
 |---------|----------|-------------|
-| Audit | `audit` | Full audit.Event object |
-| Audit | `audit.verb` | API verb (create, update, delete, etc.) |
-| Audit | `audit.objectRef` | Target resource reference |
-| Audit | `audit.user` | Authenticated user info |
-| Audit | `audit.responseObject` | Created/updated object |
-| Audit | `audit.responseStatus` | Response status |
-| Event | `event` | Full core/v1 Event object |
+| Audit | `audit` | Full audit event object |
+| Audit | `audit.verb` | API verb (create, update, patch, delete, get, list, watch) |
+| Audit | `audit.objectRef` | Target resource reference (apiVersion, apiGroup, resource, kind, namespace, name, uid) |
+| Audit | `audit.user` | Authenticated user info (username, uid, groups, extra) |
+| Audit | `audit.responseObject` | Created/updated resource (full object as map) |
+| Audit | `audit.requestObject` | Request payload (the object sent by the client) |
+| Audit | `audit.responseStatus` | Response status (code, message, reason) |
+| Event | `event` | Full events/v1 Event object |
 | Event | `event.reason` | Event reason code |
 | Event | `event.type` | Normal or Warning |
-| Event | `event.regarding` | Resource the event is about |
-| Both | `actor` | Resolved actor display name |
-| Both | `kind` | Resource kind from spec |
+| Event | `event.regarding` | Resource the event is about (apiVersion, kind, namespace, name, uid) |
+| Event | `event.message` | Event message text |
+| Event | `event.annotations` | Event annotations (for structured data from controllers) |
+| Event | `event.reportingController` | Controller that reported the event |
+| Both | `actor` | Resolved actor display name (string) |
+| Both | `actorRef` | Actor reference map with `type` and `name` fields (useful with `link()`) |
+| Both | `kind` | Resource kind from policy spec |
+
+---
+
+## Re-indexing After Policy Changes
+
+When you update an ActivityPolicy, the changes only apply to new audit/event data going forward. To retroactively apply policy changes to historical data, create a **ReindexJob**:
+
+```yaml
+apiVersion: activity.miloapis.com/v1alpha1
+kind: ReindexJob
+metadata:
+  name: reindex-after-policy-update
+spec:
+  timeRange:
+    startTime: "now-30d"
+    endTime: "now"
+  policySelector:
+    names:
+      - myservice-myresource       # Limit to specific policies
+  config:
+    batchSize: 500                  # Events per batch (default varies)
+    rateLimit: 100                  # Events per second
+    dryRun: false                   # Set true to preview without persisting
+  ttlSecondsAfterFinished: 3600    # Auto-cleanup 1 hour after completion
+```
+
+Monitor progress via status:
+```yaml
+status:
+  phase: Running                    # Pending, Running, Succeeded, Failed
+  progress:
+    totalEvents: 15000
+    processedEvents: 8500
+    activitiesGenerated: 7200
+    errors: 3
+    currentBatch: 17
+    totalBatches: 30
+  startedAt: "2024-01-15T10:00:00Z"
+```
+
+Read `concepts.md` for full ReindexJob details.
+
+---
+
+## Activity Labels
+
+Activities are automatically labeled for efficient filtering via label selectors:
+
+| Label | Values | Description |
+|-------|--------|-------------|
+| `activity.miloapis.com/origin-type` | `audit`, `event` | Source of the activity |
+| `activity.miloapis.com/change-source` | `human`, `system` | Who initiated it |
+| `activity.miloapis.com/api-group` | API group string | Resource API group |
+| `activity.miloapis.com/resource-kind` | Kind string | Resource kind |
+| `activity.miloapis.com/event-reason` | Reason string | Event reason (event-origin only) |
 
 ---
 

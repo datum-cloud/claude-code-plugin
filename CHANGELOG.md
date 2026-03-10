@@ -2,6 +2,12 @@
 
 Notable changes to the Datum Cloud Claude Code plugins.
 
+## [1.6.0] - 2026-03-09
+
+### Improved
+
+- **Activity skill** (`capability-activity`) — Comprehensive update covering ReindexJob workflows, EventQuery support, rule name/description fields, activity labels, corrected CEL variable prefixes (`audit.*`/`event.*`), fixed EventFacetQuery field names, added `actorRef` and `audit.requestObject` variables, and `platform` tenant type documentation.
+
 ## [1.5.0] - 2026-02-20
 
 ### Added
