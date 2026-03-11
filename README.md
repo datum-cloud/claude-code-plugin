@@ -8,6 +8,7 @@ A marketplace for Claude Code plugins providing platform engineering tools and a
 |--------|-------------|---------|
 | [datum-platform](./plugins/datum-platform/) | Kubernetes platform engineering automation with aggregated API servers, controller patterns, and GitOps deployment | 1.5.0 |
 | [datum-gtm](./plugins/datum-gtm/) | Go-to-market automation with commercial strategy, product discovery, and customer support | 1.0.0 |
+| [milo-activity](./plugins/milo-activity/) | Query audit logs, investigate incidents, and author ActivityPolicies using the Milo Activity service | 1.0.0 |
 
 ## Installation
 
@@ -61,6 +62,7 @@ Once the marketplace is added, install plugins by name:
 ```bash
 /plugin install datum-platform@datum-claude-code-plugins
 /plugin install datum-gtm@datum-claude-code-plugins
+/plugin install milo-activity@datum-claude-code-plugins
 ```
 
 ### Local Development
@@ -100,12 +102,17 @@ claude-code-plugins/
 │   │   ├── commands/           # Slash commands
 │   │   ├── hooks/              # Automation hooks
 │   │   └── scripts/            # Utility scripts
-│   └── datum-gtm/              # Go-to-market plugin
+│   ├── datum-gtm/              # Go-to-market plugin
+│   │   ├── .claude-plugin/
+│   │   │   └── plugin.json     # Plugin manifest
+│   │   ├── agents/             # Specialized agents
+│   │   ├── skills/             # Knowledge modules
+│   │   └── commands/           # Slash commands
+│   └── milo-activity/          # Activity service plugin
 │       ├── .claude-plugin/
 │       │   └── plugin.json     # Plugin manifest
-│       ├── agents/             # Specialized agents
-│       ├── skills/             # Knowledge modules
-│       └── commands/           # Slash commands
+│       ├── agents/             # Investigation & authoring agents
+│       └── skills/             # Activity workflows & CEL reference
 └── README.md
 ```
 
@@ -136,6 +143,21 @@ Go-to-market automation with commercial strategy, product discovery, and custome
 
 **Category:** Business
 **Tags:** gtm, marketing, product, support, commercial
+
+### milo-activity
+
+Query audit logs, investigate incidents, and author ActivityPolicies using the Milo Activity service. Wraps the Activity MCP server with higher-level skills and agents that teach Claude how to use Activity for incident investigation, change auditing, and policy authoring.
+
+**Features:**
+- 2 specialized agents (incident-investigator for read-only investigation, policy-author for interactive policy creation)
+- 7 skills covering incident investigation, user auditing, policy authoring, policy preview, activity summaries, and slash commands
+- CEL expression reference for ActivityPolicy rules
+- Token-efficient design with forked agents for investigation and inline skills for interactive authoring
+
+**Prerequisites:** The `activity` binary must be on your PATH and configured as an MCP server separately.
+
+**Category:** Observability
+**Tags:** kubernetes, audit, activity, incident, observability, milo, cel
 
 ## Contributing
 
