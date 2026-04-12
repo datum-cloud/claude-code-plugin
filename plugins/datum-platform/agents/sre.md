@@ -421,6 +421,12 @@ kubectl get activities --watch
 kubectl get activities --watch --field-selector spec.resource.namespace=production
 ```
 
+## Operational Reviews
+
+For weekly ops review reports covering global Envoy edge traffic and latency, read
+`operational-review/SKILL.md` before starting. It covers the full workflow: metric queries,
+anomaly detection, per-POP latency analysis, and publishing to `datum-cloud/engineering`.
+
 ## Skills to Reference
 
 - `kustomize-patterns` — Base + components, overlays for local development
@@ -429,4 +435,5 @@ kubectl get activities --watch --field-selector spec.resource.namespace=producti
 - `milo-iam` — IAM resource deployment (ProtectedResources, Roles)
 - `capability-telemetry` — Observability setup patterns
 - `capability-activity` — Activity logs for debugging and investigation (see `consuming-timelines.md`)
+- `operational-review` — Weekly traffic and latency ops review reports
 - `user-corrections` — Correction detection and logging
