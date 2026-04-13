@@ -35,6 +35,16 @@
 | AI edges created this week | N |
 | Overall 5xx error rate | N% |
 
+### Key Findings
+
+Promote findings here if they are action-required or incident-level. Leave out
+baseline/expected behavior. Use ⚠ for items needing investigation, ℹ for notable
+but non-urgent context.
+
+- ⚠ [Highest-priority finding — one line, with timestamp and magnitude]
+- ⚠ [Second priority finding]
+- ℹ [Notable but non-urgent observation]
+
 ---
 
 ## Edge Traffic
@@ -157,12 +167,18 @@ Source: `ProjectControlPlane` resources with `creationTimestamp` within the repo
 
 ## Observations
 
-- [Control plane traffic share]
+Background context and baseline notes. Do NOT duplicate Key Findings here —
+action-required items belong in the Summary. Reserve this section for:
+
+- Expected traffic distribution (control plane share, edge POP baselines)
+- POP burst leaders and regime changes
+- Spike correlation notes that don't rise to incident level
+- Anything that provides useful context for future reports
+
+- [Control plane traffic share — expected distribution]
 - [Edge POP burst leaders]
+- [Regime changes or gradual shifts]
 - [Spike correlation notes]
-- [Consumer concentration or growth trends]
-- [Persistent error patterns]
-- [Provisioning health summary]
 ```
 
 ## PR Body Template
