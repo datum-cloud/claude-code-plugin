@@ -165,20 +165,6 @@ Source: `ProjectControlPlane` resources with `creationTimestamp` within the repo
 
 ---
 
-## Observations
-
-Background context and baseline notes. Do NOT duplicate Key Findings here —
-action-required items belong in the Summary. Reserve this section for:
-
-- Expected traffic distribution (control plane share, edge POP baselines)
-- POP burst leaders and regime changes
-- Spike correlation notes that don't rise to incident level
-- Anything that provides useful context for future reports
-
-- [Control plane traffic share — expected distribution]
-- [Edge POP burst leaders]
-- [Regime changes or gradual shifts]
-- [Spike correlation notes]
 ```
 
 ## PR Body Template
