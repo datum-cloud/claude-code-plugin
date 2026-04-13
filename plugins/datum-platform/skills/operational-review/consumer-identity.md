@@ -99,6 +99,10 @@ topk(10, sum by (project_id) (rate(envoy_http_downstream_rq_total[5m])))
 resources are deployed yet. When routes are created per-consumer (one route per project
 or per AI service), Envoy will emit per-route stats that can be broken down by route name.
 
+The closest existing label is `envoy_http_conn_manager_prefix`. Confirmed current values:
+`http-80`, `https-443`, `aigateway-mcp-backend-listener-http`, `admin`, `eg-ready-http`,
+`eg-stats-http` — all infrastructure listeners, no per-consumer routes.
+
 The agent should check for `AIGatewayRoute` resources at review time:
 
 ```python
@@ -108,7 +112,7 @@ get_kubernetes_resources(
 )
 ```
 
-If resources exist, use:
+If resources exist, query:
 ```
 topk(10, sum by (envoy_http_conn_manager_prefix) (rate(envoy_http_downstream_rq_total[5m])))
 ```

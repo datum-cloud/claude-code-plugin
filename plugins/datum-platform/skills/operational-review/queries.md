@@ -92,17 +92,19 @@ histogram_quantile(0.95, sum(rate(envoy_http_downstream_rq_time_bucket[5m])) by 
 
 ## Edge Traffic: Top Consumers
 
-**Current state**: Envoy metrics carry no tenant/consumer identity. The `namespace` label on
-`envoy_http_downstream_rq_*` only reflects infrastructure namespaces (`datum-downstream-gateway`,
-`envoy-gateway-system`). Per-consumer edge breakdown is not available until one of the following
-is in place. See `consumer-identity.md` for the full options.
+**Current state**: Envoy metrics carry no tenant/consumer identity. Confirmed labels on
+`envoy_http_downstream_rq_total` are: `cluster`, `container`, `endpoint`,
+`envoy_http_conn_manager_prefix`, `instance`, `job`, `namespace`, `node`, `pod`, `prometheus`.
+The `namespace` label only holds infra values (`datum-downstream-gateway`, `envoy-gateway-system`).
+There is no `tenant`, `project_id`, or equivalent label. Per-consumer edge breakdown is not
+available until one of the following is in place. See `consumer-identity.md` for the full options.
 
 ### When `AIGatewayRoute` resources are deployed
 
 Each route will carry a name that maps to a consumer. Query:
 
 ```
-topk(10, sum by (route) (rate(envoy_http_downstream_rq_total[5m])))
+topk(10, sum by (envoy_http_conn_manager_prefix) (rate(envoy_http_downstream_rq_total[5m])))
 ```
 
 Until then, skip this section and note the limitation in the report.
