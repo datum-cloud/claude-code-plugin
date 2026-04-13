@@ -45,7 +45,7 @@ Analysis of AI Edge resource lifecycle and provisioning health:
 ## Workflow
 
 ```
-Query metrics → Analyze → Detect anomalies → Write report → Open PR
+Query metrics + incidents → Analyze → Correlate → Write report → Open PR
 ```
 
 ### 1. Discover available metrics
@@ -89,7 +89,26 @@ From the raw time series, compute:
 
 Flag automatically — see `queries.md` for thresholds.
 
-### 5. Write and publish report
+### 5. Surface relevant incidents
+
+Query GitHub for incidents in `datum-cloud/engineering`:
+
+```bash
+gh issue list --repo datum-cloud/engineering \
+  --label ":incident/issue" \
+  --state all \
+  --json number,title,state,createdAt,closedAt
+```
+
+Filter for AI Edge relevance:
+- **Include**: incidents opened or closed within the report period (±2 days)
+- **Include**: any open incidents touching proxies, edge, routing, Envoy, Karmada, or provisioning
+- **Exclude**: unrelated infrastructure (DNS for non-edge domains, staff portal, auth UI)
+
+Where an incident's timing overlaps a metric anomaly, note the correlation explicitly
+in both the Open Incidents section and the relevant Key Finding.
+
+### 6. Write and publish report
 
 - File path: `reports/traffic/YYYY-MM-DD-datum-traffic.md` in `datum-cloud/engineering`
 - Branch: `ops/traffic-report-YYYY-MM-DD`

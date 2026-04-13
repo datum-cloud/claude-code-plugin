@@ -47,6 +47,19 @@ but non-urgent context.
 
 ---
 
+## Open Incidents
+
+Incidents from `datum-cloud/engineering` with label `:incident/issue` that are open or
+were opened/closed during the report period, filtered for AI Edge relevance.
+
+| # | Title | Status | Opened | Correlation |
+|---|-------|--------|--------|-------------|
+| [#N](link) | ... | OPEN / Closed YYYY-MM-DD | YYYY-MM-DD | [metric anomaly or "none"] |
+
+> If no relevant incidents: *No open incidents affecting AI Edge during this period.*
+
+---
+
 ## Edge Traffic
 
 ### Daily Averages
