@@ -14,11 +14,11 @@
 ## Report Structure
 
 ```markdown
-# Datum Traffic Report — YYYY-MM-DD
+# Datum AI Edge — Ops Review YYYY-MM-DD
 
 **Period:** YYYY-MM-DD through YYYY-MM-DD
-**Source:** `envoy_http_downstream_rq_total`, `envoy_http_downstream_rq_time_bucket` via VictoriaMetrics (prod)
-**Scope:** Global Envoy edge ingress across all POPs
+**Source:** VictoriaMetrics (prod)
+**Scope:** Edge traffic, top consumers, error rates, control plane provisioning
 
 ---
 
@@ -27,29 +27,31 @@
 | Metric | Value |
 |--------|-------|
 | POPs reporting | N |
-| Weekly average | N RPS |
+| Weekly average RPS | N |
 | Baseline range | N–N RPS |
 | Peak (1m resolution) | **N RPS** |
+| Global P90 latency (weekly median) | N ms |
+| AI edges active | N |
+| AI edges created this week | N |
+| Overall 5xx error rate | N% |
 
 ---
 
-## Daily Averages
+## Edge Traffic
+
+### Daily Averages
 
 | Date | Avg RPS |
 |------|--------:|
 | ... | ... |
 
----
+### Notable Spikes (>150% of weekly avg)
 
-## Notable Spikes (>150 RPS)
+| Timestamp (UTC) | RPS | Correlated event |
+|-----------------|----:|-----------------|
+| ... | ... | ... |
 
-| Timestamp (UTC) | RPS |
-|-----------------|----:|
-| ... | ... |
-
----
-
-## Latency (ms)
+### Latency (ms)
 
 Global aggregate across all POPs.
 
@@ -58,11 +60,9 @@ Global aggregate across all POPs.
 | ... | ... | ... | ... | ... | ... | ... |
 | **Weekly** | **N** | **N** | **N** | **N** | **N** | **N** |
 
-**Note:** [Explain any notable pattern in the distribution, e.g. bimodal split.]
+**Note:** [Explain any notable distribution pattern, e.g. bimodal split.]
 
----
-
-## Latency by POP (weekly median, ms)
+### Latency by POP (weekly median, ms)
 
 Sorted by P90. Spikes excluded from median; noted separately.
 
@@ -73,15 +73,70 @@ Sorted by P90. Spikes excluded from median; noted separately.
 **Key findings:**
 - [Fastest POP]
 - [Slowest POP]
-- [Any incident-level anomalies]
+- [Incident-level anomalies]
 
----
-
-## Per-POP Breakdown
+### Per-POP Breakdown
 
 | Cluster | Avg RPS | Peak RPS |
 |---------|--------:|---------:|
 | ... | ... | ... |
+
+---
+
+## Top Consumers
+
+Top 10 tenants/namespaces by request volume over the review period.
+
+| Consumer | Avg RPS | % of total | Notable pattern |
+|----------|--------:|-----------:|-----------------|
+| ... | ... | ...% | ... |
+
+**Observations:**
+- [Traffic concentration or distribution notes]
+- [Any consumer with unusual growth or decline]
+
+---
+
+## Error Codes by API Group
+
+### Edge (Envoy)
+
+| API Group / Route | 4xx Rate | 5xx Rate | Notes |
+|-------------------|--------:|--------:|-------|
+| ... | ...% | ...% | ... |
+
+**Overall 5xx rate:** N% (threshold: 1%)
+
+### Control Plane (API Server)
+
+| API Group | Code | Rate | Notes |
+|-----------|------|-----:|-------|
+| ... | ... | ... | ... |
+
+**Webhook admission rejections:** [N rejections by webhook name, or "none"]
+
+---
+
+## Control Plane: AI Edge Provisioning
+
+| Metric | Value |
+|--------|-------|
+| AI edges active | N |
+| Created this week | N |
+| Scheduling P90 | N s |
+| Propagation P90 (time-to-ready) | N s |
+| Binding failures | N |
+
+### Provisioning Latency by Member Cluster
+
+| Cluster | Propagation P90 | Anomalies |
+|---------|----------------:|-----------|
+| ... | ... s | ... |
+
+**Key findings:**
+- [Fastest cluster]
+- [Slowest cluster]
+- [Any binding failures or scheduler errors]
 
 ---
 
@@ -90,21 +145,25 @@ Sorted by P90. Spikes excluded from median; noted separately.
 - [Control plane traffic share]
 - [Edge POP burst leaders]
 - [Spike correlation notes]
-- [Any persistent issues flagged]
+- [Consumer concentration or growth trends]
+- [Persistent error patterns]
+- [Provisioning health summary]
 ```
 
 ## PR Body Template
 
 ```markdown
-## Ops Review — Global Envoy Edge Ingress Traffic
+## Ops Review — Datum AI Edge
 
-Weekly traffic report for {period}, sourced from VictoriaMetrics prod.
+Weekly operational report for {period}, sourced from VictoriaMetrics prod.
 
 ## Summary
 
 - **{N} POPs** reporting
-- **{N} RPS** weekly average; baseline {N}–{N} RPS
-- **{N} RPS** peak (1m resolution, {timestamp})
+- **{N} RPS** weekly average; baseline {N}–{N} RPS; peak **{N} RPS** at {timestamp}
+- Global P90 latency: **{N} ms** weekly median
+- **{N} AI edges** active; **{N}** created this week
+- 5xx error rate: **{N}%** overall
 - {One-line notable finding}
 - {One-line notable finding}
 
@@ -129,10 +188,10 @@ gh pr create --title "Ops Review: Weekly traffic report YYYY-MM-DD" --body "..."
 
 ## Incremental Updates
 
-If asked to add data to an existing report (e.g. "add latencies"), amend the report in place:
+If asked to add data to an existing report (e.g. "add latencies", "add consumer breakdown"):
 
 1. Read the current file
-2. Add the new section in the appropriate position (Latency before Per-POP Breakdown)
-3. Update the `**Source:**` line to include the new metric
+2. Add the new section in the appropriate position (follow the structure order above)
+3. Update the `**Source:**` line to include the new metric if needed
 4. Commit with a short message: `ops: add {section} to traffic report`
 5. Push — the existing PR updates automatically
