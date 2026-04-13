@@ -5,7 +5,7 @@
 | Attribute | Value |
 |-----------|-------|
 | Repo | `~/src/datum-cloud/engineering` |
-| Path | `reviews/ai-edge/YYYY-MM-DD-ai-edge-ops-review.md` |
+| Path | `reviews/ai-edge/YYYY-MM-DD-edge-ops-review.md` |
 | Branch | `ops/traffic-report-YYYY-MM-DD` |
 | PR title | `Ops Review: Weekly traffic report YYYY-MM-DD` |
 
@@ -199,7 +199,7 @@ Weekly operational report for {period}, sourced from VictoriaMetrics prod.
 
 ## Report
 
-`reviews/ai-edge/YYYY-MM-DD-ai-edge-ops-review.md`
+`reviews/ai-edge/YYYY-MM-DD-edge-ops-review.md`
 ```
 
 ## Git Workflow
@@ -210,7 +210,7 @@ git checkout main && git pull
 git checkout -b ops/traffic-report-YYYY-MM-DD
 mkdir -p reviews/ai-edge
 # Write report file
-git add reviews/ai-edge/YYYY-MM-DD-ai-edge-ops-review.md
+git add reviews/ai-edge/YYYY-MM-DD-edge-ops-review.md
 git commit -m "ops: add weekly traffic report for YYYY-MM-DD"
 git push -u origin ops/traffic-report-YYYY-MM-DD
 gh pr create --title "Ops Review: Weekly traffic report YYYY-MM-DD" --body "..."

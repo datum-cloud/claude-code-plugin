@@ -110,7 +110,7 @@ in both the Open Incidents section and the relevant Key Finding.
 
 ### 6. Write and publish report
 
-- File path: `reviews/ai-edge/YYYY-MM-DD-ai-edge-ops-review.md` in `datum-cloud/engineering`
+- File path: `reviews/ai-edge/YYYY-MM-DD-edge-ops-review.md` in `datum-cloud/engineering`
 - Branch: `ops/traffic-report-YYYY-MM-DD`
 - PR title: `Ops Review: Weekly traffic report YYYY-MM-DD`
 - See `report-format.md` for the full report structure
