@@ -85,15 +85,30 @@ Sorted by P90. Spikes excluded from median; noted separately.
 
 ## Top Consumers
 
-Top 10 tenants/namespaces by request volume over the review period.
+### Control Plane (available)
 
-| Consumer | Avg RPS | % of total | Notable pattern |
-|----------|--------:|-----------:|-----------------|
-| ... | ... | ...% | ... |
+Top 10 projects by API request volume. Source: `apiserver_request_total` by `namespace`,
+joined with `ProjectControlPlane` resources for owner resolution.
 
-**Observations:**
-- [Traffic concentration or distribution notes]
-- [Any consumer with unusual growth or decline]
+| Owner | Project | Avg RPS | Error rate | Notable pattern |
+|-------|---------|--------:|----------:|-----------------|
+| ... | ... | ... | ...% | ... |
+
+### Edge (not yet available)
+
+Per-consumer edge breakdown requires tenant identity to be propagated to Envoy metrics.
+See `consumer-identity.md` for the options. Until resolved, note:
+
+> Consumer-level edge segmentation is unavailable. Envoy metrics carry only infrastructure
+> namespace labels. See `consumer-identity.md` for remediation options.
+
+### New Projects This Week
+
+Source: `ProjectControlPlane` resources with `creationTimestamp` within the report period.
+
+| Owner | Project | Created |
+|-------|---------|---------|
+| ... | ... | ... |
 
 ---
 

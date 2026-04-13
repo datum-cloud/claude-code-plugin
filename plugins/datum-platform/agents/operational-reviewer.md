@@ -35,6 +35,7 @@ Before doing any work, read in this order:
 1. `operational-review/SKILL.md` — full workflow overview
 2. `operational-review/queries.md` — exact VictoriaMetrics query expressions
 3. `operational-review/report-format.md` — report structure and PR conventions
+4. `operational-review/consumer-identity.md` — how to resolve consumer identity from metrics
 
 ## Workflow
 

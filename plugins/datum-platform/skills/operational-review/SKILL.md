@@ -40,6 +40,7 @@ Analysis of AI Edge resource lifecycle and provisioning health:
 |------|---------|
 | `queries.md` | VictoriaMetrics queries for all metric categories |
 | `report-format.md` | Report structure, section order, and PR conventions |
+| `consumer-identity.md` | How to map identity to resources — what works today, what needs platform work |
 
 ## Workflow
 

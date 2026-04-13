@@ -92,32 +92,66 @@ histogram_quantile(0.95, sum(rate(envoy_http_downstream_rq_time_bucket[5m])) by 
 
 ## Edge Traffic: Top Consumers
 
-Consumer segmentation depends on available labels. Before running, confirm with:
+**Current state**: Envoy metrics carry no tenant/consumer identity. The `namespace` label on
+`envoy_http_downstream_rq_*` only reflects infrastructure namespaces (`datum-downstream-gateway`,
+`envoy-gateway-system`). Per-consumer edge breakdown is not available until one of the following
+is in place. See `consumer-identity.md` for the full options.
+
+### When `AIGatewayRoute` resources are deployed
+
+Each route will carry a name that maps to a consumer. Query:
 
 ```
-label_values(envoy_http_downstream_rq_total, namespace)
-label_values(envoy_http_downstream_rq_total, tenant)
+topk(10, sum by (route) (rate(envoy_http_downstream_rq_total[5m])))
 ```
 
-Use whichever label represents consumer identity (`tenant`, `namespace`, `source_cluster`, etc.).
+Until then, skip this section and note the limitation in the report.
 
-### Top consumers by RPS — weekly average
+---
 
-```
-topk(10, sum by (<consumer_label>) (rate(envoy_http_downstream_rq_total[5m])))
-```
+## Control Plane: Top Consumers (available today)
 
-- `step: 1d` — gives daily trend per consumer
-- Sort by descending average to rank top 10
+Each Datum project maps 1:1 to a Kubernetes namespace. `apiserver_request_total` carries a
+`namespace` label, so per-project control plane activity is available now.
 
-### Consumer share of total traffic
+### Top projects by API request volume — daily
 
 ```
-sum by (<consumer_label>) (rate(envoy_http_downstream_rq_total[5m]))
-  / ignoring(<consumer_label>) sum(rate(envoy_http_downstream_rq_total[5m]))
+topk(10, sum by (namespace) (rate(apiserver_request_total[5m])))
 ```
 
-- Reveals whether traffic is concentrated or distributed
+- `step: 1d`
+- Filter out system namespaces: add `namespace!~"kube-.*|flux-system|cert-manager|.*-system"`
+- Sort descending to rank top consumers
+
+### Top projects by error rate
+
+```
+topk(10, sum by (namespace) (rate(apiserver_request_total{code=~"4..|5.."}[5m])))
+  / ignoring(code) topk(10, sum by (namespace) (rate(apiserver_request_total[5m])))
+```
+
+- Surfaces projects generating the most rejected requests
+
+### Map namespace → project owner (Kubernetes MCP)
+
+`apiserver_request_total` gives namespace names, but not owner identity. Use the Kubernetes
+MCP to resolve the mapping:
+
+```
+get_kubernetes_resources(
+  apiVersion: "infrastructure.miloapis.com/v1alpha1",
+  kind: "ProjectControlPlane"
+)
+```
+
+Each `ProjectControlPlane` resource has:
+- `metadata.name` — matches the namespace name in `apiserver_request_total`
+- `metadata.labels["resourcemanager.miloapis.com/project-name"]` — human-readable project name
+- `metadata.annotations["resourcemanager.miloapis.com/owner-name"]` — organization/owner
+
+Join the metric results to this list by matching `namespace` → `metadata.name` to produce a
+table with columns: owner, project, avg RPS, error rate.
 
 ---
 
