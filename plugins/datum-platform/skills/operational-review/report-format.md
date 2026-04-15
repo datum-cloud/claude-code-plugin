@@ -130,22 +130,24 @@ Flag in Key Findings if:
 
 ## Top Consumers
 
-### Control Plane (available)
+### Edge traffic
+
+Top 10 projects by upstream RPS. Source: `envoy_cluster_upstream_rq_total` by
+`httproute_namespace`, joined with `kube_namespace_labels` to resolve project name.
+See `consumer-identity.md` and `queries.md` for the full expressions.
+
+| Project | Avg RPS | P90 latency | 4xx rate | 5xx rate |
+|---------|--------:|------------:|---------:|---------:|
+| ... | ... | ... ms | ...% | ...% |
+
+### Control plane
 
 Top 10 projects by API request volume. Source: `apiserver_request_total` by `namespace`,
-joined with `ProjectControlPlane` resources for owner resolution.
+same join pattern.
 
-| Owner | Project | Avg RPS | Error rate | Notable pattern |
-|-------|---------|--------:|----------:|-----------------|
-| ... | ... | ... | ...% | ... |
-
-### Edge (not yet available)
-
-Per-consumer edge breakdown requires tenant identity to be propagated to Envoy metrics.
-See `consumer-identity.md` for the options. Until resolved, note:
-
-> Consumer-level edge segmentation is unavailable. Envoy metrics carry only infrastructure
-> namespace labels. See `consumer-identity.md` for remediation options.
+| Project | Avg API RPS | Error rate |
+|---------|------------:|-----------:|
+| ... | ... | ...% |
 
 ### New Projects This Week
 

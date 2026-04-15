@@ -92,68 +92,85 @@ histogram_quantile(0.95, sum(rate(envoy_http_downstream_rq_time_bucket[5m])) by 
 
 ## Edge Traffic: Top Consumers
 
-**Current state**: Envoy metrics carry no tenant/consumer identity. Confirmed labels on
-`envoy_http_downstream_rq_total` are: `cluster`, `container`, `endpoint`,
-`envoy_http_conn_manager_prefix`, `instance`, `job`, `namespace`, `node`, `pod`, `prometheus`.
-The `namespace` label only holds infra values (`datum-downstream-gateway`, `envoy-gateway-system`).
-There is no `tenant`, `project_id`, or equivalent label. Per-consumer edge breakdown is not
-available until one of the following is in place. See `consumer-identity.md` for the full options.
+**Do not use** `envoy_http_downstream_rq_total` for consumer analysis — it is the global
+listener metric and carries no consumer identity. Use `envoy_cluster_upstream_rq_total`,
+which carries `httproute_namespace=~"ns-.*"` — one namespace per project.
 
-### When `AIGatewayRoute` resources are deployed
+See `consumer-identity.md` for full background and the gateway-based alternative.
 
-Each route will carry a name that maps to a consumer. Query:
+### Top projects by upstream RPS
 
 ```
-topk(10, sum by (envoy_http_conn_manager_prefix) (rate(envoy_http_downstream_rq_total[5m])))
+topk(10,
+  label_replace(
+    sum by (httproute_namespace) (
+      rate(envoy_cluster_upstream_rq_total{httproute_namespace=~"ns-.*"}[5m])
+    ) * on (httproute_namespace) group_left(label_meta_datumapis_com_upstream_cluster_name)
+      kube_namespace_labels{label_meta_datumapis_com_upstream_cluster_name!=""},
+    "project_name", "$1",
+    "label_meta_datumapis_com_upstream_cluster_name", "cluster-_(.*)"
+  )
+)
 ```
 
-Until then, skip this section and note the limitation in the report.
-
----
-
-## Control Plane: Top Consumers (available today)
-
-Each Datum project maps 1:1 to a Kubernetes namespace. `apiserver_request_total` carries a
-`namespace` label, so per-project control plane activity is available now.
-
-### Top projects by API request volume — daily
-
-```
-topk(10, sum by (namespace) (rate(apiserver_request_total[5m])))
-```
-
-- `step: 1d`
-- Filter out system namespaces: add `namespace!~"kube-.*|flux-system|cert-manager|.*-system"`
-- Sort descending to rank top consumers
+- `step: 1d` for weekly trend
+- Result carries `project_name` label with the resolved project name
 
 ### Top projects by error rate
 
 ```
-topk(10, sum by (namespace) (rate(apiserver_request_total{code=~"4..|5.."}[5m])))
-  / ignoring(code) topk(10, sum by (namespace) (rate(apiserver_request_total[5m])))
-```
-
-- Surfaces projects generating the most rejected requests
-
-### Map namespace → project owner (Kubernetes MCP)
-
-`apiserver_request_total` gives namespace names, but not owner identity. Use the Kubernetes
-MCP to resolve the mapping:
-
-```
-get_kubernetes_resources(
-  apiVersion: "infrastructure.miloapis.com/v1alpha1",
-  kind: "ProjectControlPlane"
+label_replace(
+  sum by (httproute_namespace, envoy_response_code) (
+    rate(envoy_cluster_upstream_rq_xx{
+      httproute_namespace=~"ns-.*",
+      envoy_response_code=~"4..|5.."
+    }[5m])
+  ) * on (httproute_namespace) group_left(label_meta_datumapis_com_upstream_cluster_name)
+    kube_namespace_labels{label_meta_datumapis_com_upstream_cluster_name!=""},
+  "project_name", "$1",
+  "label_meta_datumapis_com_upstream_cluster_name", "cluster-_(.*)"
 )
 ```
 
-Each `ProjectControlPlane` resource has:
-- `metadata.name` — matches the namespace name in `apiserver_request_total`
-- `metadata.labels["resourcemanager.miloapis.com/project-name"]` — human-readable project name
-- `metadata.annotations["resourcemanager.miloapis.com/owner-name"]` — organization/owner
+### Per-project latency P90
 
-Join the metric results to this list by matching `namespace` → `metadata.name` to produce a
-table with columns: owner, project, avg RPS, error rate.
+```
+label_replace(
+  histogram_quantile(0.90,
+    sum by (httproute_namespace, le) (
+      rate(envoy_cluster_upstream_rq_time_bucket{httproute_namespace=~"ns-.*"}[5m])
+    ) * on (httproute_namespace) group_left(label_meta_datumapis_com_upstream_cluster_name)
+      kube_namespace_labels{label_meta_datumapis_com_upstream_cluster_name!=""}
+  ),
+  "project_name", "$1",
+  "label_meta_datumapis_com_upstream_cluster_name", "cluster-_(.*)"
+)
+```
+
+- `step: 6h`
+
+---
+
+## Control Plane: Top Consumers
+
+Same join pattern as edge traffic, using `apiserver_request_total`:
+
+### Top projects by API request volume
+
+```
+topk(10,
+  label_replace(
+    sum by (namespace) (
+      rate(apiserver_request_total{namespace=~"ns-.*"}[5m])
+    ) * on (namespace) group_left(label_meta_datumapis_com_upstream_cluster_name)
+      kube_namespace_labels{label_meta_datumapis_com_upstream_cluster_name!=""},
+    "project_name", "$1",
+    "label_meta_datumapis_com_upstream_cluster_name", "cluster-_(.*)"
+  )
+)
+```
+
+- `step: 1d`
 
 ---
 
