@@ -152,6 +152,35 @@ get_kubernetes_resources(
 
 ---
 
+## Owner Email and User Profile Links
+
+The staff portal user profile URL is:
+
+```
+https://staff.datum.net/customers/users/{userId}
+```
+
+Where `{userId}` is the user's Kubernetes `metadata.name` — a numeric Zitadel user ID
+(e.g., `328747448287632651`).
+
+**What is available through current tooling:**
+- Project → owner org name: via `milo_projects_info{resource_name=...}.owner_name` or
+  `ProjectControlPlane.metadata.annotations["resourcemanager.miloapis.com/owner-name"]`
+- Org type (Personal vs Standard): via `milo_organizations_info`
+- Staff portal project link: `https://staff.datum.net/customers/projects/{project-name}`
+
+**What is NOT available through current tooling:**
+- User email address — stored in Zitadel, served via `iam.miloapis.com/v1alpha1` User
+  `spec.email`. Not in VictoriaMetrics metrics. The `milo_users_info` metric carries
+  only the numeric Zitadel ID as `resource_name`, with no email label.
+- Staff portal user profile link — requires mapping org name → user Zitadel ID → profile
+  URL. This mapping is not exposed via the Kubernetes MCP (User CRD returns no results
+  with current RBAC) or metrics.
+
+To add email + profile links to a report, direct IAM API access is required.
+
+---
+
 ## Report Table Format
 
 | Project | Avg RPS | P90 latency | 4xx rate | 5xx rate |
