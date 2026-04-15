@@ -307,6 +307,90 @@ sum by (name, type) (rate(apiserver_admission_webhook_admission_duration_seconds
 
 ---
 
+## Control Plane: Project Count and Memory Pressure
+
+High project counts drive Kyverno informer cache growth, which causes memory pressure on
+the admission controller. Left undetected, this produces an OOMKill → webhook-down →
+stale UpdateRequest backlog loop (see datum-cloud/infra#2220). Track project count trend
+and admission controller headroom every review cycle.
+
+### Project count — current and weekly growth (Kubernetes MCP)
+
+```python
+get_kubernetes_resources(
+  apiVersion="infrastructure.miloapis.com/v1alpha1",
+  kind="ProjectControlPlane"
+)
+```
+
+- Count total resources for the current fleet size
+- Filter `creationTimestamp` within the report period to count new projects this week
+- Week-over-week growth = (this week count) − (last week count)
+
+### Project namespace count via metrics
+
+```
+count(kube_namespace_labels{label_resourcemanager_miloapis_com_project_name!=""})
+```
+
+- Single-point query — cross-check against Kubernetes MCP count
+- `step: 1d` for weekly trend; flag if growth rate is accelerating
+
+### Kyverno UpdateRequest backlog (Kubernetes MCP)
+
+```python
+get_kubernetes_resources(
+  apiVersion="kyverno.io/v2",
+  kind="UpdateRequest",
+  namespace="kyverno"
+)
+```
+
+- Count total UpdateRequests; anything above ~100 warrants attention
+- A large backlog (thousands) indicates the background controller is unable to drain —
+  a precursor to the admission webhook failure loop
+
+### Kyverno UpdateRequest backlog via metrics
+
+```
+kyverno_update_requests_total
+```
+
+- Confirm label set with `labels(kyverno_update_requests_total)`
+- `step: 1h` for weekly trend; look for sustained growth rather than transient spikes
+
+### Kyverno admission controller memory — usage vs limit
+
+```
+container_memory_working_set_bytes{
+  container="kyverno-admission-controller"
+}
+```
+
+```
+kube_pod_container_resource_limits{
+  resource="memory",
+  container="kyverno-admission-controller"
+}
+```
+
+- Compute utilization ratio: `working_set / limit`
+- `step: 1h` — flag if ratio exceeds 70% (leaves insufficient headroom before OOMKill)
+- Current limit after datum-cloud/infra#2220: 1536Mi
+
+### Kyverno admission controller restart rate
+
+```
+increase(kube_pod_container_status_restarts_total{
+  container="kyverno-admission-controller"
+}[1d])
+```
+
+- `step: 1d` — any restarts (exit code 137 = OOMKill) are a critical signal
+- Cross-check: `kube_pod_container_status_last_terminated_reason{reason="OOMKilled"}`
+
+---
+
 ## Anomaly Thresholds
 
 | Signal | Threshold | Action |
@@ -321,3 +405,9 @@ sum by (name, type) (rate(apiserver_admission_webhook_admission_duration_seconds
 | Propagation P90 | > 60s | Investigate member cluster health |
 | Binding failure rate | Any sustained > 0 | Flag by failure reason |
 | API server 5xx | > 0.5% per group | Investigate by resource group |
+| Project count weekly growth | > 50 new projects/week | Note trend; assess memory headroom runway |
+| Kyverno UpdateRequest backlog | > 100 | Background controller is falling behind |
+| Kyverno UpdateRequest backlog | > 1,000 | Critical — webhook failure loop risk (see infra#2220) |
+| Kyverno admission memory utilization | > 70% of limit | Headroom warning; monitor for OOMKill |
+| Kyverno admission memory utilization | > 90% of limit | Imminent OOMKill risk; escalate |
+| Kyverno admission restarts | Any in week | Investigate for OOMKill (exit 137) |

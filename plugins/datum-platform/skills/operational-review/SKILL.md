@@ -33,6 +33,9 @@ Analysis of AI Edge resource lifecycle and provisioning health:
   scheduler latency, per-cluster distribution
 - **Error codes by API group** — webhook admission errors, controller reconcile
   errors, and API server error rates per resource group
+- **Project count and memory pressure** — total project namespaces, week-over-week
+  growth, Kyverno UpdateRequest backlog depth, and admission controller memory
+  utilization vs limit (see infra#2220 for why this matters)
 
 ## Key Files
 

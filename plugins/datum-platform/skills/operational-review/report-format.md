@@ -106,6 +106,28 @@ Sorted by P90. Spikes excluded from median; noted separately.
 
 ---
 
+## Project Count and Control Plane Health
+
+Added after datum-cloud/infra#2220: high project count drives Kyverno informer cache growth
+and admission controller memory pressure.
+
+| Metric | Value | vs last week |
+|--------|-------|-------------|
+| Total projects | N | +N |
+| New projects this week | N | — |
+| Kyverno UpdateRequest backlog | N | +N |
+| Kyverno admission memory utilization | N% of NMi limit | — |
+| Kyverno admission restarts this week | N | — |
+
+**Memory headroom runway** (at current growth rate): _N weeks until 90% utilization_
+
+Flag in Key Findings if:
+- UpdateRequest backlog > 1,000
+- Memory utilization > 70%
+- Any admission controller restarts occurred
+
+---
+
 ## Top Consumers
 
 ### Control Plane (available)
