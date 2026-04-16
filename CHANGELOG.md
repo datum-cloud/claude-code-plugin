@@ -2,6 +2,12 @@
 
 Notable changes to the Datum Cloud Claude Code plugins.
 
+## [1.6.0] - 2026-04-12
+
+### Added
+
+- **Operational review skill** (`operational-review`) — Guides the SRE agent through producing weekly traffic and latency ops review reports for the global Envoy edge ingress. Covers VictoriaMetrics queries for RPS and latency (P50/P90/P95) globally and per-POP, anomaly detection thresholds, and publishing structured reports as pull requests to `datum-cloud/engineering`.
+
 ## [1.5.0] - 2026-02-20
 
 ### Added
