@@ -2,6 +2,12 @@
 
 Notable changes to the Datum Cloud Claude Code plugins.
 
+## [1.7.0] - 2026-04-25
+
+### Added
+
+- **GCP spend analysis skill** (`analyze-gcp-spend`) — Weekly GCP cost report covering datum-cloud staging and production. Queries BigQuery billing exports and live cluster state, generates mermaid trend charts for the trailing 4 months, and files a PR to `datum-cloud/engineering`. Includes a dedicated `cost-analyst` agent and full report-format and query reference.
+
 ## [1.6.0] - 2026-04-12
 
 ### Added
