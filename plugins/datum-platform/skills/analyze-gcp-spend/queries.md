@@ -126,14 +126,14 @@ Cloud SQL cost from billing is often understated if disk size isn't exported. Us
 ```bash
 # Production
 gcloud container node-pools list \
-  --cluster datum-prod \
+  --cluster infrastructure-control-plane-prod \
   --region us-east4 \
   --project datum-cloud-prod \
   --format="table(name, config.machineType, config.spot, autoscaling.minNodeCount, autoscaling.maxNodeCount, initialNodeCount)"
 
 # Staging
 gcloud container node-pools list \
-  --cluster datum-staging \
+  --cluster infrastructure-control-plane-staging \
   --region us-east4 \
   --project datum-cloud-staging \
   --format="table(name, config.machineType, config.spot, autoscaling.minNodeCount, autoscaling.maxNodeCount, initialNodeCount)"
@@ -146,11 +146,11 @@ Any pool not present in IaC should be flagged as drift in the Top Issues section
 
 ```bash
 # Production
-kubectl get pvc --all-namespaces --context datum-prod \
+kubectl get pvc --all-namespaces --context infrastructure-control-plane-prod \
   -o custom-columns="NS:.metadata.namespace,NAME:.metadata.name,CLASS:.spec.storageClassName,CAPACITY:.status.capacity.storage"
 
 # Staging
-kubectl get pvc --all-namespaces --context datum-staging \
+kubectl get pvc --all-namespaces --context infrastructure-control-plane-staging \
   -o custom-columns="NS:.metadata.namespace,NAME:.metadata.name,CLASS:.spec.storageClassName,CAPACITY:.status.capacity.storage"
 ```
 

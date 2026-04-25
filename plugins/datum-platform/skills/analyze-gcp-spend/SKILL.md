@@ -25,21 +25,50 @@ retrospective for the prior calendar month. All other weeks produce a month-to-d
 
 | Environment | GCP Project ID | Cluster | Region |
 |-------------|---------------|---------|--------|
-| Production | `datum-cloud-prod` | `datum-prod` | us-east4 |
-| Staging | `datum-cloud-staging` | `datum-staging` | us-east4 |
+| Production | `datum-cloud-prod` | `infrastructure-control-plane-prod` | us-east4 |
+| Staging | `datum-cloud-staging` | `infrastructure-control-plane-staging` | us-east4 |
 
 Edge clusters (dfw, tyo, syd, etc.) run outside GCP — exclude from this analysis.
 
+## Preflight Checks
+
+Run these before doing any work. If BigQuery fails, stop and report — do not proceed
+with estimates in place of real billing data.
+
+```bash
+# 1. Verify BigQuery billing export is accessible
+bq ls --project_id datum-cloud-prod billing
+# Expected: lists at least one table named gcp_billing_export_resource_v1_*
+# Failure → stop. Fix: grant bigquery.jobs.create + bigquery.tables.getData
+#   on the billing dataset to the active service account or user.
+
+# 2. Verify prod cluster is reachable
+gcloud container clusters list --project datum-cloud-prod --format="value(name)"
+# Expected: infrastructure-control-plane-prod
+# Failure → note in report, use IaC config for prod compute section only
+
+# 3. Verify staging cluster is reachable
+gcloud container clusters list --project datum-cloud-staging --format="value(name)"
+# Expected: infrastructure-control-plane-staging
+# Failure → note in report, use IaC config for staging compute section only
+```
+
+**BigQuery is a hard requirement.** Storage and Cloud SQL are only visible in the billing
+export — without it the report is missing $2,000–$3,000/month of spend. A report produced
+without billing data will be materially wrong. Stop and surface the access error; do not
+publish an estimate-based report as if it were authoritative.
+
 ## Workflow
 
-1. **Determine period** — check today's date; select full-month (day ≤ 7) or MTD mode
-2. **Query billing** — run BigQuery queries from `queries.md` for services, SKUs, and storage
-3. **Query live state** — pull current node pools, PVC inventory, and Cloud SQL from both clusters
-4. **Compute 4-month trend** — run the trailing-4-months query; populate mermaid chart data
-5. **Identify issues** — compare billing data to live state; flag IaC drift, oversized resources,
+1. **Preflight** — run the checks above; halt on BigQuery failure
+2. **Determine period** — check today's date; select full-month (day ≤ 7) or MTD mode
+3. **Query billing** — run BigQuery queries from `queries.md` for services, SKUs, and storage
+4. **Query live state** — pull current node pools, PVC inventory, and Cloud SQL from both clusters
+5. **Compute 4-month trend** — run the trailing-4-months query; populate mermaid chart data
+6. **Identify issues** — compare billing data to live state; flag IaC drift, oversized resources,
    generation-penalty instances (n1 vs n2), and unexpected on-demand pools
-6. **Draft report** — follow the structure and mermaid templates in `report-format.md`
-7. **File PR** — write to `/workspace/engineering` and open a PR via `gh pr create`
+7. **Draft report** — follow the structure and mermaid templates in `report-format.md`
+8. **File PR** — write to `/workspace/engineering` and open a PR via `gh pr create`
 
 ## What to Flag
 
