@@ -369,6 +369,11 @@ get_kubernetes_resources(
 
 ### Kyverno UpdateRequest backlog via metrics
 
+**NOTE: `kyverno_update_requests_total` is not available in the current deployment** —
+this metric is not emitted by the Kyverno version running in prod (confirmed against live
+VictoriaMetrics). Use the Kubernetes MCP path above (`get_kubernetes_resources` for
+`UpdateRequest`) as the only viable approach for tracking backlog size.
+
 ```
 kyverno_update_requests_total
 ```
@@ -380,26 +385,29 @@ kyverno_update_requests_total
 
 ```
 container_memory_working_set_bytes{
-  container="kyverno-admission-controller"
+  namespace="kyverno-system",
+  container="kyverno"
 }
 ```
 
 ```
 kube_pod_container_resource_limits{
+  namespace="kyverno-system",
   resource="memory",
-  container="kyverno-admission-controller"
+  container="kyverno"
 }
 ```
 
 - Compute utilization ratio: `working_set / limit`
 - `step: 1h` — flag if ratio exceeds 70% (leaves insufficient headroom before OOMKill)
-- Current limit after datum-cloud/infra#2220: 1536Mi
+- Current limit confirmed across all 18 clusters: 2048Mi (2Gi)
 
 ### Kyverno admission controller restart rate
 
 ```
 increase(kube_pod_container_status_restarts_total{
-  container="kyverno-admission-controller"
+  namespace="kyverno-system",
+  container="kyverno"
 }[1d])
 ```
 
