@@ -2,6 +2,14 @@
 
 Notable changes to the Datum Cloud Claude Code plugins.
 
+## [1.6.1] - 2026-04-27
+
+### Fixed
+
+- **Kyverno container label** (`operational-review`) — Corrected three queries that filtered on `container="kyverno-admission-controller"` (returns no data) to the actual cAdvisor/kube-state-metrics label `container="kyverno"`. Added `namespace="kyverno-system"` scoping to all three queries.
+- **Kyverno memory limit comment** (`operational-review`) — Updated stale `1536Mi` figure to the current confirmed limit of `2048Mi (2Gi)` across all 18 clusters.
+- **`kyverno_update_requests_total` availability** (`operational-review`) — Added note that this metric is not emitted by the deployed Kyverno version and that the Kubernetes MCP `UpdateRequest` path is the only viable approach.
+
 ## [1.6.0] - 2026-04-12
 
 ### Added
