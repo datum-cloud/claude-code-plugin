@@ -1,281 +1,261 @@
 ---
-name: pr-conventions
-description: Covers pull request description conventions including structure, sections, and content guidelines. Use when creating PRs to ensure consistent, informative descriptions across Datum Cloud repositories.
+name: github-conventions
+description: Covers GitHub conventions for pull requests, issues, and comments including linking, language style, formatting, and callout syntax. Use when creating PRs, writing issues, or posting comments on Datum Cloud repositories.
 ---
 
-# Pull Request Conventions
+# GitHub Conventions
 
-This skill covers pull request description conventions for all Datum Cloud repositories.
+This skill covers how to work with GitHub effectively — writing pull requests, issues, and comments that are clear, user-friendly, and easy to act on.
 
-## Overview
+## Core Principles
 
-Write PR descriptions for reviewers who need context to understand and evaluate changes. A well-crafted PR description accelerates review, documents decisions, and serves as a reference for future maintainers.
+- Write for humans, not machines. Avoid jargon unless the audience is explicitly technical.
+- Be concise. Respect the reader's time.
+- Focus on goals and outcomes, not implementation details.
+- Use comments to add depth — keep the primary description focused.
+- Close issues deliberately. Linking is not closing.
 
-## PR Title
+---
 
-Follow the same format as commit messages:
+## Pull Requests
 
-```
-<type>: <subject>
-```
+### Title
 
-Or with scope for larger changes:
-
-```
-<type>(<scope>): <subject>
-```
+PR titles should be short, plain-language descriptions of what the change delivers.
 
 | Rule | Guidance |
 |------|----------|
-| Use type prefix | `feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `chore:` |
+| Use conventional prefix | `feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `chore:` |
 | Imperative mood | "Add feature" not "Added feature" |
 | Capitalize after colon | Begin with capital letter |
 | No period at end | Cleaner appearance |
 | Keep concise | Under 72 characters |
+| Avoid technical detail | Describe the outcome, not the implementation |
 
-## Required Sections
+**Good:** `feat: Show activity timeline on the resource dashboard`
+**Avoid:** `feat: Add ActivityFeed component with websocket polling and pagination`
 
-### Summary
+### Linking to Issues
 
-Describe the problem and solution in plain language. Start with prose that explains the context, then use bullet points only for key behaviors or outcomes that benefit from scannable formatting.
+Every PR must link to the issue it addresses. This is required, not optional.
 
 ```markdown
-## Summary
-
-Public API endpoints were vulnerable to abuse from automated clients making excessive requests. This adds rate limiting to protect service availability.
-
-Key behaviors:
-
-- Requests exceeding 100/min receive 429 responses with retry headers
-- Limits are configurable per-endpoint via environment variables
-- Existing clients below the threshold see no change
+Fixes #123
 ```
 
-Write for humans first. Focus on:
-- What problem this solves (lead with this)
-- Why this approach was chosen
-- Key outcomes that reviewers should verify
+Use the appropriate keyword based on intent:
 
-### Test Plan
+| Keyword | When to use |
+|---------|-------------|
+| `Fixes #n` | This PR resolves the issue — use when you intend to close it |
+| `Resolves #n` | Same as Fixes — an alternative |
+| `Related to #n` | The PR is connected but does not fully address the issue |
 
-How changes were tested or should be tested. Use a checklist.
+> [!IMPORTANT]
+> Never use `Closes` or `Closed`. Closing an issue is a deliberate action — use `Fixes` or `Resolves` only when you are certain the issue should be closed when this PR merges.
 
-```markdown
-## Test plan
-
-- [ ] Unit tests pass locally
-- [ ] Manual testing of rate limit behavior
-- [ ] Verified error responses match API spec
-```
-
-For complex changes, include:
-- Specific scenarios tested
-- Edge cases considered
-- Performance implications verified
-
-## Conditional Sections
-
-### Breaking Changes
-
-Required when changes break backward compatibility.
+If the PR relates to multiple issues or other PRs, link all of them:
 
 ```markdown
-## Breaking changes
-
-- `GET /api/users` now requires authentication
-- Response format changed from array to paginated object
-- Environment variable `API_KEY` renamed to `AUTH_TOKEN`
-```
-
-Include:
-- What breaks
-- Migration path for consumers
-- Version implications
-
-### Changes
-
-For complex PRs, provide detailed breakdown.
-
-```markdown
-## Changes
-
-- **New**: `RateLimiter` middleware with token bucket algorithm
-- **Modified**: `APIHandler` to integrate rate limiting
-- **Removed**: Legacy throttling code (unused since v2.1)
-```
-
-## Optional Sections
-
-### Related Issues
-
-Link to issues this PR addresses.
-
-```markdown
-Closes #123
-Fixes #456
+Fixes #123
+Related to #456
 Related to #789
 ```
 
-Use appropriate keywords:
-- `Closes` / `Fixes` — automatically closes issue when merged
-- `Related to` — references without closing
+### Description
 
-### Screenshots
+Write descriptions for someone who hasn't been following the work. Lead with context, not implementation.
 
-For UI changes, include before/after screenshots.
+**Required sections:**
 
 ```markdown
-## Screenshots
+## Summary
 
-| Before | After |
-|--------|-------|
-| ![before](url) | ![after](url) |
+<Describe the problem in 1–2 sentences. Then explain what this PR does and why it matters.>
+
+## Test plan
+
+- [ ] <Specific scenario tested>
+- [ ] <Edge case considered>
+
+Fixes #<issue>
+Related to #<other work>
 ```
 
-### Notes for Reviewers
+**Summary guidance:**
+- Open with the problem or goal, not what files were changed
+- Explain why this approach was chosen if it isn't obvious
+- Use bullets only for discrete outcomes that benefit from scanning — lead with prose
 
-Call out areas needing particular attention.
+**Conditional sections:**
 
-```markdown
-## Notes for reviewers
+Add a `## Breaking changes` section if anything downstream needs to update. Describe what breaks and how to migrate, in plain terms.
 
-- The caching logic in `cache.go` is the most complex part
-- Consider if the error handling in `handler.go:45` is sufficient
-```
+For UI changes, include a `## Screenshots` section with before/after.
 
-## Writing Style
+### Writing Style
 
-Write PR descriptions like you're explaining the change to a colleague. Use natural prose to provide context, and reserve bullet points for lists of discrete items.
+Write like you're explaining the change to a teammate. Non-technical stakeholders may read PRs — avoid assuming deep technical context unless the PR is explicitly internal.
 
 | Use prose for | Use bullets for |
 |---------------|-----------------|
-| Problem description | List of key behaviors |
-| Context and rationale | Test scenarios |
-| How components relate | Breaking changes list |
+| Problem description | Discrete test scenarios |
+| Context and rationale | Breaking changes list |
+| How components relate | Key observable behaviors |
 
-Avoid starting the summary with bullet points. Lead with a sentence that orients the reader, then add bullets if needed for scannable details.
-
-## Structure Template
-
-```markdown
-## Summary
-
-<Describe the problem in 1-2 sentences. Then explain what this PR does and why.>
-
-<Optional: Key behaviors or outcomes as bullets if they benefit from scanning.>
-
-## Test plan
-
-- [ ] <Test scenario 1>
-- [ ] <Test scenario 2>
-
-## Breaking changes
-
-<If applicable, describe what breaks and migration path>
-
-Closes #<issue-number>
-```
-
-## Examples
-
-### Good: Feature Addition
-
-```markdown
-## Summary
-
-Users currently have no visibility into recent activity on their resources. This adds an activity timeline to the dashboard that surfaces recent actions, helping users quickly understand what changed and when.
-
-The timeline uses the existing Activity API with client-side pagination, so no backend changes are required.
-
-## Test plan
-
-- [ ] Timeline renders with mock data
-- [ ] Pagination loads additional items
-- [ ] Empty state displays correctly
-- [ ] Error state handles API failures gracefully
-
-Closes #234
-```
-
-### Good: Bug Fix
-
-```markdown
-## Summary
-
-Under high load, connections were being reused after closure, causing intermittent failures for downstream requests. The root cause was a missing mutex in `releaseConnection()` that allowed concurrent access during cleanup.
-
-This adds proper synchronization to the connection pool, ensuring connections are fully released before being returned to the pool.
-
-## Test plan
-
-- [ ] Added regression test for concurrent connection release
-- [ ] Load tested with 1000 concurrent requests
-- [ ] No connection errors in 10-minute soak test
-
-Fixes #567
-```
-
-### Bad: No Context
-
-```markdown
-## Summary
-
-Fixed the bug.
-
-## Test plan
-
-Tested locally.
-```
-
-Why is this bad? No context on what bug, what was wrong, or how it was tested.
-
-### Bad: Implementation Details Only
-
-```markdown
-## Summary
-
-- Changed line 45 in handler.go
-- Added new function in utils.go
-- Updated imports
-
-## Test plan
-
-- [ ] Tests pass
-```
-
-Why is this bad? Describes what changed (visible in diff) but not why.
-
-## Agent Behavior
-
-When creating PR descriptions:
-
-1. **Explain purpose** — If uncertain why changes are being made, ask before creating PR
-2. **Include test plan** — Always include specific test scenarios, not just "tests pass"
-3. **Call out breaking changes** — Explicitly confirm if changes break compatibility
-4. **No tool attribution** — Never include watermarks like "Generated with [Tool]"
-5. **Keep it professional** — Clean, focused descriptions without unnecessary flair
-
-## What to Avoid
+### What to Avoid
 
 | Avoid | Why |
 |-------|-----|
-| Tool attribution/watermarks | Clutters PR, unprofessional |
-| Bullet-point-only summaries | Feels robotic; lead with prose for context |
-| Emoji overuse | Distracting, inconsistent |
-| Vague test plans | "Tested locally" provides no value |
-| Implementation details only | Diff shows what; PR explains why |
-| Empty sections | Omit optional sections rather than leaving empty |
+| `Closes` / `Closed` keyword | Use `Fixes` or `Resolves` deliberately |
+| PRs without an issue link | Every change should trace to intent |
+| Technical jargon in summaries | Not all readers have the same context |
+| Bullet-point-only summaries | Lead with prose for orientation |
+| Tool attribution / watermarks | Clutters the PR |
+| Empty sections | Omit optional sections rather than leaving them blank |
 
-## Relationship to Commit Conventions
+---
 
-PR descriptions and commit messages serve different purposes:
+## Issues
 
-| Aspect | Commit Message | PR Description |
-|--------|---------------|----------------|
-| Audience | Git history readers | PR reviewers |
-| Scope | Single atomic change | All changes in branch |
-| Detail | Concise (50/72 char limits) | Comprehensive |
-| Test info | Not included | Required section |
-| Breaking changes | Footer notation | Dedicated section |
+### Title
 
-A PR may contain multiple commits. The PR description provides the high-level narrative; individual commits document atomic changes.
+Issue titles should clearly describe what needs to happen or what is going wrong — in plain language.
+
+**Good:** `Users can't see who last modified a resource`
+**Avoid:** `NullPointerException in ResourceController.getOwner()`
+
+### Description
+
+Issue descriptions should focus on **goals and desired outcomes**, not implementation approaches. Keep them concise. Use comments for detailed discussion.
+
+**Structure:**
+
+```markdown
+## What needs to happen
+
+<Describe the goal or problem in plain language. What should be true when this is done?>
+
+## Why this matters
+
+<Optional: Who is affected and what is the impact?>
+
+## Desired outcome
+
+<What does success look like? What can a user do that they couldn't before, or what stops happening?>
+```
+
+**Guidance:**
+- Write for someone unfamiliar with the internals
+- Avoid prescribing the solution in the description — that belongs in comments
+- If you have acceptance criteria, keep them outcome-focused: "A user can do X" not "The handler must call Y"
+
+> [!NOTE]
+> Implementation approaches and technical discussion belong in comments, not the issue description. Keep the description stable and focused on the "what" and "why."
+
+### Linking Related Work
+
+Link related issues, PRs, and context using descriptive text:
+
+```markdown
+Related to #456
+See also: [Rate limiting investigation](#789)
+```
+
+Always prefer descriptive link text over bare URLs or raw issue numbers when linking to external resources.
+
+---
+
+## Comments
+
+### Purpose
+
+Comments are for depth — elaborating on approaches, surfacing tradeoffs, asking questions, and discussion. The issue or PR description captures the "what"; comments capture the "how" and the conversation around it.
+
+### Formatting
+
+Keep comments conversational. Avoid heavy formatting unless it genuinely aids clarity.
+
+- Use plain prose for most comments
+- Use a simple list only when enumerating discrete options or steps
+- Avoid headers in comments — they suggest the content belongs in the description instead
+- Never use tables in comments unless you're comparing multiple options side by side
+
+### Callouts
+
+Use [GitHub's callout syntax](https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax#alerts) to highlight key points:
+
+```markdown
+> [!NOTE]
+> Something the reader should be aware of but won't block progress.
+
+> [!TIP]
+> A helpful suggestion or shortcut.
+
+> [!IMPORTANT]
+> Something the reader must know to proceed correctly.
+
+> [!WARNING]
+> Something that could cause problems if overlooked.
+
+> [!CAUTION]
+> A risk of data loss, breakage, or significant consequence.
+```
+
+Use callouts sparingly. If everything is highlighted, nothing is.
+
+### Links
+
+Always use descriptive link text. A reader should understand where a link goes before clicking.
+
+**Good:** `See the [rate limiting design doc](link) for context.`
+**Avoid:** `See this: https://...` or `See [here](link).`
+
+This applies everywhere in GitHub — issues, PRs, and comments.
+
+---
+
+## Examples
+
+### Good PR Description
+
+```markdown
+## Summary
+
+Users had no way to see recent activity on their resources, making it hard to understand what changed and when. This adds an activity timeline to the resource detail page that shows the last 20 actions in reverse chronological order.
+
+The timeline uses the existing Activity API, so no backend changes are required.
+
+## Test plan
+
+- [ ] Timeline renders correctly with activity data
+- [ ] Empty state displays when there is no activity
+- [ ] Pagination loads additional items on scroll
+- [ ] Error state handles API failures without crashing
+
+Fixes #234
+Related to #198
+```
+
+### Good Issue Description
+
+```markdown
+## What needs to happen
+
+Team members need to see who last modified a resource and when, so they can understand recent changes without digging through audit logs.
+
+## Desired outcome
+
+The resource detail page shows a "last modified by" line with the user's name and a relative timestamp (e.g., "Modified by Dana 2 hours ago").
+```
+
+### Good Comment
+
+```markdown
+Two approaches here — we could pull this from the activity log on read, or store it directly on the resource. Storing directly is simpler and faster to query, but means we'd need a migration. Pulling from the activity log avoids schema changes but adds latency.
+
+> [!NOTE]
+> The activity log approach will break if a resource predates activity tracking (anything created before March 2025).
+
+I'd lean toward storing it directly. Happy to discuss if there's a reason to avoid the migration.
+```
