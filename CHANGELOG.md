@@ -2,6 +2,12 @@
 
 Notable changes to the Datum Cloud Claude Code plugins.
 
+## [1.8.0] - 2026-05-04
+
+### Added
+
+- **Release skill** (`release`) — Generates GitHub releases for any datum-cloud service repository. Auto-detects project type (CRD-based operator or aggregated API server), collects merged PRs since the last release, diffs schema/type files to determine compatibility, drafts release notes in the established style, and publishes via `gh release create`. Supports `--patch`, `--minor`, `--major`, and `--draft` flags.
+
 ## [1.7.0] - 2026-04-30
 
 ### Changed
