@@ -237,7 +237,19 @@ mkdir -p reviews/ai-edge
 git add reviews/ai-edge/YYYY-MM-DD-edge-ops-review.md
 git commit -m "ops: add weekly traffic report for YYYY-MM-DD"
 git push -u origin ops/traffic-report-YYYY-MM-DD
-gh pr create --title "Ops Review: Weekly traffic report YYYY-MM-DD" --body "..."
+PR_URL=$(gh pr create --title "Ops Review: Weekly traffic report YYYY-MM-DD" --body "..." | tail -1)
+
+# Find the current on-call issue and drop a comment linking the review
+ONCALL_ISSUE=$(gh issue list \
+  --repo datum-cloud/engineering \
+  --search "on-call: week of" \
+  --state open \
+  --json number,title \
+  --jq '.[0].number')
+
+gh issue comment "$ONCALL_ISSUE" \
+  --repo datum-cloud/engineering \
+  --body "Weekly traffic report open for review: $PR_URL"
 ```
 
 ## Incremental Updates
