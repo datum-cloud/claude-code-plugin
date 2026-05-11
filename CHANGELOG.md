@@ -2,6 +2,12 @@
 
 Notable changes to the Datum Cloud Claude Code plugins.
 
+## [1.7.1] - 2026-05-11
+
+### Changed
+
+- **Operational review skill** (`operational-review`) — After opening the traffic report PR, now finds the current on-call issue in `datum-cloud/engineering` (open issue titled "on-call: week of …") and posts a comment linking the review.
+
 ## [1.7.0] - 2026-04-25
 
 ### Added
