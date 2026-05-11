@@ -1,0 +1,20 @@
+{
+  "name": "datum-operations",
+  "description": "Operational tooling for the Datum AI Edge — weekly ops review reports, edge traffic analysis, and control plane health monitoring",
+  "version": "1.0.0",
+  "author": {
+    "name": "Datum Cloud",
+    "url": "https://github.com/datum-cloud"
+  },
+  "repository": "https://github.com/datum-cloud/claude-code-plugins",
+  "license": "MIT",
+  "keywords": [
+    "operations",
+    "observability",
+    "sre",
+    "ops-review",
+    "victoriametrics",
+    "edge",
+    "karmada"
+  ]
+}

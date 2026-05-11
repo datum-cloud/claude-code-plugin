@@ -42,6 +42,18 @@
       "source": "./plugins/milo-activity",
       "category": "observability",
       "homepage": "https://github.com/datum-cloud/activity"
+    },
+    {
+      "name": "datum-operations",
+      "description": "Operational tooling for the Datum AI Edge — weekly ops review reports, edge traffic analysis, and control plane health monitoring",
+      "version": "1.0.0",
+      "author": {
+        "name": "Datum Cloud",
+        "email": "engineering@datumcloud.io"
+      },
+      "source": "./plugins/datum-operations",
+      "category": "operations",
+      "homepage": "https://github.com/datum-cloud/claude-code-plugins"
     }
   ]
 }

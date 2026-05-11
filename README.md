@@ -6,9 +6,10 @@ A marketplace for Claude Code plugins providing platform engineering tools and a
 
 | Plugin | Description | Version |
 |--------|-------------|---------|
-| [datum-platform](./plugins/datum-platform/) | Kubernetes platform engineering automation with aggregated API servers, controller patterns, and GitOps deployment | 1.7.1 |
+| [datum-platform](./plugins/datum-platform/) | Kubernetes platform engineering automation with aggregated API servers, controller patterns, and GitOps deployment | 2.0.0 |
 | [datum-gtm](./plugins/datum-gtm/) | Go-to-market automation with commercial strategy, product discovery, and customer support | 1.0.0 |
 | [milo-activity](./plugins/milo-activity/) | Query audit logs, investigate incidents, and author ActivityPolicies using the Milo Activity service | 1.0.0 |
+| [datum-operations](./plugins/datum-operations/) | Operational tooling for the Datum AI Edge — weekly ops review reports, edge traffic analysis, and control plane health monitoring | 1.0.0 |
 
 ## Installation
 
@@ -63,6 +64,7 @@ Once the marketplace is added, install plugins by name:
 /plugin install datum-platform@datum-claude-code-plugins
 /plugin install datum-gtm@datum-claude-code-plugins
 /plugin install milo-activity@datum-claude-code-plugins
+/plugin install datum-operations@datum-claude-code-plugins
 ```
 
 ### Local Development
@@ -108,11 +110,16 @@ claude-code-plugins/
 │   │   ├── agents/             # Specialized agents
 │   │   ├── skills/             # Knowledge modules
 │   │   └── commands/           # Slash commands
-│   └── milo-activity/          # Activity service plugin
+│   ├── milo-activity/          # Activity service plugin
+│   │   ├── .claude-plugin/
+│   │   │   └── plugin.json     # Plugin manifest
+│   │   ├── agents/             # Investigation & authoring agents
+│   │   └── skills/             # Activity workflows & CEL reference
+│   └── datum-operations/       # Operational review plugin
 │       ├── .claude-plugin/
 │       │   └── plugin.json     # Plugin manifest
-│       ├── agents/             # Investigation & authoring agents
-│       └── skills/             # Activity workflows & CEL reference
+│       ├── agents/             # Operational reviewer agent
+│       └── skills/             # Ops review workflows & queries
 └── README.md
 ```
 
@@ -123,8 +130,8 @@ claude-code-plugins/
 Kubernetes platform engineering automation with aggregated API servers, controller patterns, and GitOps deployment for the Datum Cloud platform.
 
 **Features:**
-- 6 specialized agents (api-dev, frontend-dev, sre, test-engineer, code-reviewer, tech-writer)
-- 26 skill modules covering Kubernetes patterns, Go conventions, deployment workflows, and more
+- 7 specialized agents (api-dev, frontend-dev, sre, test-engineer, code-reviewer, tech-writer, plan)
+- 25 skill modules covering Kubernetes patterns, Go conventions, deployment workflows, and more
 - Pipeline orchestration for structured feature development
 - Automatic learning engine for pattern extraction
 
@@ -158,6 +165,19 @@ Query audit logs, investigate incidents, and author ActivityPolicies using the M
 
 **Category:** Observability
 **Tags:** kubernetes, audit, activity, incident, observability, milo, cel
+
+### datum-operations
+
+Operational tooling for the Datum AI Edge. Produces weekly ops review reports sourced from VictoriaMetrics, covering edge traffic performance, consumer breakdowns, error analysis, and control plane provisioning health.
+
+**Features:**
+- 1 specialized agent (operational-reviewer)
+- 1 skill module with VictoriaMetrics queries, anomaly thresholds, report format, and on-call issue linking
+
+**Prerequisites:** The `datum-infra-prod` VictoriaMetrics MCP server must be configured.
+
+**Category:** Operations
+**Tags:** operations, sre, observability, victoriametrics, edge, karmada, ops-review
 
 ## Contributing
 

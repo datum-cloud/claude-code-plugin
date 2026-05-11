@@ -2,6 +2,19 @@
 
 Notable changes to the Datum Cloud Claude Code plugins.
 
+## [datum-operations 1.0.0] - 2026-05-11
+
+### Added
+
+- **New plugin: datum-operations** — Operational tooling for the Datum AI Edge, extracted from `datum-platform`. Includes the `operational-reviewer` agent and `operational-review` skill (VictoriaMetrics queries, anomaly detection, report format, on-call issue linking).
+
+## [datum-platform 2.0.0] - 2026-05-11
+
+### Removed
+
+- **Operational reviewer agent** (`operational-reviewer`) — Moved to the new `datum-operations` plugin.
+- **Operational review skill** (`operational-review`) — Moved to the new `datum-operations` plugin.
+
 ## [1.7.1] - 2026-05-11
 
 ### Changed
