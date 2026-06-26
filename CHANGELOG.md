@@ -2,6 +2,12 @@
 
 Notable changes to the Datum Cloud Claude Code plugins.
 
+## [1.11.0] - 2026-08-17
+
+### Added
+
+- **NOTICE file generation command** (`/notice`, datum-platform) — Generates a NOTICE file for a project's third-party dependencies. Detects the project language and uses language-specific tooling (go-licenses, pip-licenses, license-checker, cargo-about) with fallback strategies for each.
+
 ## [1.9.0] - 2026-08-04
 
 ### Added
