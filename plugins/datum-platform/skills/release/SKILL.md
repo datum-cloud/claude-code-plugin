@@ -1,10 +1,11 @@
 ---
 name: release
 description: >
-  Create a new GitHub release. Determines the next version from the latest tag,
-  summarizes merged PRs since the last release, drafts release notes in the
-  established style, and publishes via gh release create. Works for any
-  datum-cloud service repository.
+  Create a new GitHub release. Verifies CI is green on the release commit and
+  refreshes the third-party NOTICE file before tagging, determines the next
+  version from the latest tag, summarizes merged PRs since the last release,
+  drafts release notes in the established style, and publishes via gh release
+  create. Works for any datum-cloud service repository.
 tools: Read, Bash
 model: sonnet
 context: fork
@@ -35,7 +36,37 @@ Version or flags: $ARGUMENTS
 
 ## Workflow
 
-### Step 1 — Determine the next version
+### Step 1 — Pre-flight: verify the release is safe to cut
+
+**Never cut a release from a commit that is not passing CI.** A tagged release is
+immutable and consumers will pull it, so the release commit must be green first.
+
+```bash
+# Resolve the default branch and the commit that will be tagged
+gh repo view --json defaultBranchRef --jq '.defaultBranchRef.name'
+git rev-parse HEAD
+
+# Check the combined commit status (legacy status contexts)
+gh api "repos/{owner}/{repo}/commits/$(git rev-parse HEAD)/status" --jq '.state'
+
+# Check GitHub Actions / check-run results for the same commit
+gh api "repos/{owner}/{repo}/commits/$(git rev-parse HEAD)/check-runs" \
+  --jq '.check_runs[] | {name: .name, status: .status, conclusion: .conclusion}'
+```
+
+Treat the release commit as **not releasable** unless:
+- The combined status is `success` (or `null`/empty when no legacy statuses exist), and
+- Every check run has `status: completed` with a `conclusion` of `success`, `skipped`, or `neutral`.
+
+If any check is still `in_progress`/`queued`, or any concluded as `failure`,
+`cancelled`, `timed_out`, or `action_required`, **stop** and report the failing
+checks (see Error Handling). Do not offer to bypass unless the user explicitly
+insists and understands the risk.
+
+Also confirm the working tree is clean and you are on the default branch (see
+Error Handling for the exact warnings).
+
+### Step 2 — Determine the next version
 
 ```bash
 # Get the latest tag
@@ -51,7 +82,7 @@ Parse the latest tag (e.g., `v0.6.0`) and bump the appropriate component:
 - `--major`: `v0.6.0` → `v1.0.0`
 - An explicit version argument overrides all flags.
 
-### Step 2 — Collect merged PRs since the last release
+### Step 3 — Collect merged PRs since the last release
 
 ```bash
 # Get the publish date of the last release
@@ -73,7 +104,7 @@ Group remaining PRs into categories based on title prefix or labels:
 - **Fixes** (`fix:`)
 - **Infrastructure / chores** (`chore:`, `ci:`, `build:`)
 
-### Step 3 — Detect project type and schema changes
+### Step 4 — Detect project type and schema changes
 
 Auto-detect what kind of project this is so the release note includes the right compatibility statement. Run these checks in order; a project may match more than one.
 
@@ -136,7 +167,53 @@ grep -r 'ghcr.io' .github/ Makefile config/ --include='*.yaml' --include='*.yml'
 
 If neither CRDs nor an aggregated API server are found, omit the schema / compatibility section entirely.
 
-### Step 4 — Draft release notes
+### Step 5 — Refresh the NOTICE file (license compliance)
+
+Datum-cloud repositories ship a `NOTICE` file that aggregates the licenses and
+attributions of third-party dependencies. It **must** be regenerated and reflect
+the exact dependency set of the release commit before tagging, or the release
+falls out of license compliance.
+
+**Find the existing NOTICE and its generation mechanism:**
+```bash
+# Existing notice/attribution file
+ls NOTICE NOTICE.md NOTICE.txt THIRD_PARTY_NOTICES* 2>/dev/null
+
+# Preferred: a repo-provided target (use this if it exists)
+grep -nE '^(notice|licenses?|third-party|attributions?)[a-z-]*:' Makefile 2>/dev/null
+ls hack/*notice* hack/*license* scripts/*notice* scripts/*license* 2>/dev/null
+```
+
+**Regenerate it.** Prefer the repo's own mechanism; fall back to `go-licenses`
+for Go modules:
+```bash
+# 1. Preferred — a Makefile target or hack/ script the repo already defines
+make notice          # or: make licenses / make generate-notice / hack/update-notice.sh
+
+# 2. Fallback for Go modules with no dedicated target
+go install github.com/google/go-licenses@latest
+go-licenses report ./... --template hack/notice.tpl > NOTICE   # if a template exists
+# otherwise capture the license inventory:
+go-licenses report ./... > NOTICE
+```
+
+**Check whether the regenerated file drifted from what is committed:**
+```bash
+git status --porcelain -- NOTICE NOTICE.md NOTICE.txt THIRD_PARTY_NOTICES*
+git diff -- NOTICE NOTICE.md NOTICE.txt THIRD_PARTY_NOTICES*
+```
+
+- **No drift:** the committed NOTICE is current — proceed.
+- **Drift detected:** the release commit is **not** in compliance. The NOTICE
+  change must land on the default branch *before* tagging (releases are cut from
+  a clean default branch). **Stop**, show the diff, and instruct the user to open
+  a PR updating NOTICE and re-run `/release` once it merges. Do not tag over a
+  dirty tree just to include the NOTICE change.
+- **No NOTICE file and no generation mechanism found:** warn that the repository
+  has no third-party attribution file and recommend adding one, but let the user
+  decide whether to proceed.
+
+### Step 6 — Draft release notes
 
 Examine the last 2–3 releases with `gh release view <tag>` to match the established style and tone of this repository before writing new notes.
 
@@ -165,16 +242,18 @@ consumers must update: imports, image refs, install paths, CRD migrations, etc.}
 - Omit routine dependency bumps unless the upgrade is significant (e.g., a major version of a core dependency).
 - Release title format: `vX.Y.Z — {Short theme}` (em-dash, not a hyphen; omit if there is no clear theme).
 
-### Step 5 — Confirm before publishing
+### Step 7 — Confirm before publishing
 
 Show the user:
+- CI status of the release commit (all checks green)
+- NOTICE status (current / regenerated with no drift)
 - The proposed tag (`vX.Y.Z`)
 - The release title
 - The full release notes body
 
 Ask for confirmation before running `gh release create`.
 
-### Step 6 — Create the release
+### Step 8 — Create the release
 
 ```bash
 gh release create <tag> \
@@ -193,6 +272,8 @@ If `--draft` was requested, skip publishing and return the draft URL for review.
 ## Output
 
 ```
+CI status: all checks passing (release commit abc1234)
+NOTICE: up to date  |  regenerated, no drift
 Next version: v0.7.0 (minor bump from v0.6.0)
 PRs since v0.6.0: 4 merged
 Project type: CRD-based operator  |  aggregated API server  |  plain service
@@ -217,6 +298,21 @@ Release published: https://github.com/<org>/<repo>/releases/tag/v0.7.0
 ---
 
 ## Error Handling
+
+**CI not passing on the release commit:**
+```
+Blocked: the release commit <sha> is not passing CI. Failing/incomplete checks:
+  - <check name>: <conclusion or status>
+Releases must be cut from a green commit. Fix CI (or wait for in-progress checks
+to finish) and re-run /release.
+```
+
+**NOTICE file drifted:**
+```
+Blocked: NOTICE is out of date for this commit. Third-party dependencies changed
+without regenerating attributions. Open a PR to update NOTICE, merge it to the
+default branch, then re-run /release. (Diff shown above.)
+```
 
 **Uncommitted changes:**
 ```
