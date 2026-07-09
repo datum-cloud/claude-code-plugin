@@ -12,8 +12,12 @@ This skill provides templates for go-to-market communications.
 | Template | Purpose |
 |----------|---------|
 | `templates/blog-post.md` | Launch blog post |
-| `templates/changelog.md` | Changelog entry |
-| `templates/enablement.md` | Internal enablement |
+
+The changelog and enablement formats are documented inline in this file (see
+**Changelog Format** and **Enablement Brief** below); they don't have separate
+template files. For a community-facing changelog *post* to the GitHub Discussions
+Changelog category, use the `changelog-entry` skill instead of the release-file
+format here.
 
 ## Blog Post Structure
 
