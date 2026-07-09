@@ -2,6 +2,12 @@
 
 Notable changes to the Datum Cloud Claude Code plugins.
 
+## [1.1.0] - 2026-07-08
+
+### Added
+
+- **Changelog entry skill** (`changelog-entry`, datum-gtm) — Guides the gtm-comms agent through turning raw engineering notes, PR/issue links, or a feature description into a ready-to-post entry for Datum's GitHub Discussions Changelog. Covers benefit-led titling, a fixed post structure (lead → hero feature → New/Improved/Fixed → docs links → single CTA), a voice pass that strips Kubernetes jargon and internal implementation detail, mandatory visual placeholders, community credit, and a scope gate that keeps marketing news and sub-100-word stubs out. Ships a fill-in `template.md`, a worked `example.md`, and a self-review checklist. Complements the Keep-a-Changelog release-file template in `gtm-templates`.
+
 ## [1.8.0] - 2026-05-04
 
 ### Added

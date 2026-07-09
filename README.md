@@ -7,7 +7,7 @@ A marketplace for Claude Code plugins providing platform engineering tools and a
 | Plugin | Description | Version |
 |--------|-------------|---------|
 | [datum-platform](./plugins/datum-platform/) | Kubernetes platform engineering automation with aggregated API servers, controller patterns, and GitOps deployment | 1.8.0 |
-| [datum-gtm](./plugins/datum-gtm/) | Go-to-market automation with commercial strategy, product discovery, and customer support | 1.0.0 |
+| [datum-gtm](./plugins/datum-gtm/) | Go-to-market automation with commercial strategy, product discovery, and customer support | 1.1.0 |
 | [milo-activity](./plugins/milo-activity/) | Query audit logs, investigate incidents, and author ActivityPolicies using the Milo Activity service | 1.0.0 |
 
 ## Installation
@@ -137,7 +137,7 @@ Go-to-market automation with commercial strategy, product discovery, and custome
 
 **Features:**
 - 4 specialized agents (product-discovery, commercial-strategist, gtm-comms, support-triage)
-- 3 skill modules for GTM workflows
+- 4 skill modules for GTM workflows
 - Commercial strategy and pricing analysis
 - Customer support triage automation
 
