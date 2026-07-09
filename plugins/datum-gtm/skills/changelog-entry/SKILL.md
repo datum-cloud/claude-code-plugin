@@ -86,6 +86,12 @@ missing rather than filling it in yourself — see the Ground rule):
 | **Feature launch** | one substantial user-facing capability | Benefit title; hero feature section with visual; docs link |
 | **Digest / roundup** | several small changes, none a headline on its own | Benefit title (not a grab-bag); **no hero** — go straight to grouped changes |
 
+**A digest may carry a breaking change or security fix** — that alone doesn't
+force a hero or a separate post. Render the `### Heads-up` / `### Security` groups
+(Step 4) *above* New/Improved/Fixed, and if a breaking change has a hard
+deadline, make the title signal it (e.g. name the replacement API). A breaking
+change big enough to need its own migration narrative gets its own post instead.
+
 **Scope gate — stop before drafting if:**
 
 - **Not a product change.** Company/marketing news (handbook, website nav,
@@ -123,28 +129,36 @@ feature using an em-dash (`—`).
 Follow `template.md`:
 
 1. **Lead paragraph** — what you can now do + why it matters, 1–2 sentences, in
-   "you can now…" voice. No preamble, no "we're excited to announce."
+   "you can now…" voice. No preamble, no "we're excited to announce." For a
+   digest, the lead spans the batch: "This release speeds up search, localizes
+   log timestamps, and adds CSV export."
 2. **Hero feature** — the headline change, with the visual (Step 6) and its
    concrete scenario. Use `###` headings and fenced code for commands/config.
    *A pure digest has no single hero — omit this and go straight to the groups.*
 3. **Remaining changes** — grouped under `### New`, `### Improved`, `### Fixed`
    (omit empty groups; one benefit-first line each). The hero is **not** repeated
    under `### New`. Don't restate the lead's scenario verbatim in a group.
-4. **Breaking changes / deprecations** — if any, a `### Heads-up` group rendered
-   with `> [!IMPORTANT]`, stating the **migration path** and any **deadline**.
-   Never bury a breaking change inside `### Fixed`.
-5. **Security fixes** — say what was fixed and who should act; do **not** publish
-   exploit detail. Link the advisory and credit the reporter only if the
-   disclosure is already public.
+4. **Breaking changes / deprecations** — if any, a `### Heads-up` group
+   (`> [!IMPORTANT]`) rendered **above** New/Improved/Fixed, stating the
+   **migration path** and any **deadline**. Never bury one inside `### Fixed`.
+5. **Security fixes** — if any, an explicit `### Security` group, also **above**
+   New/Improved/Fixed. Say what was fixed and who should act; do **not** publish
+   exploit detail. Link the advisory — or `[VERIFY: add link once published]` if
+   it isn't live yet — and credit the reporter only if disclosure is public. Say
+   "fix is deployed, no action needed" only if the input supports it; otherwise
+   mark it `[VERIFY]`.
 6. **Docs deep-links** — one 📖 link per **major/new** feature to a live
    `datum.net/docs/...` page (Step 7). `Improved` and `Fixed` lines don't need
    their own docs link.
 7. **Closing** — community credit + a single pointed question (Step 7).
-8. **Footer (CLI releases)** — `**Full changelog:** [vA...vB](compare-url)`.
+8. **Footer (versioned CLI releases only)** — `**Full changelog:** [vA...vB](compare-url)`.
+   An unversioned CLI change inside a digest is just a New/Improved line — no footer.
 
 **Code blocks must use real syntax.** In a CLI post the fenced block is what
 users copy — don't invent flags or argument shapes. Verify against `--help`/docs;
-if the syntax is unknown, ask or omit the block and flag it in Step 8.
+if the syntax is unknown, ask or omit the block and flag it in Step 8. When you
+can't run `--help`/docs in the drafting environment, keep your best draft of the
+block but flag it in the handoff block — that's the expected path, not a blocker.
 
 **Callouts only when earned.** Use `> [!NOTE]` / `> [!IMPORTANT]` for genuine
 upgrade or compatibility notes. If there's no real note, omit the callout — don't
@@ -216,6 +230,10 @@ final URL by analogy:
 > 📄 DOCS PLACEHOLDER — confirm the published URL before posting (draft: <PR link>)
 ```
 
+Any link that will exist but doesn't yet — a security advisory, a launch blog —
+gets the same treatment: mark it `[VERIFY: add link once published]` and add a
+handoff row rather than guessing the URL.
+
 **Credit gate.** @-mention **and** link back only when the request/report is in a
 **public** discussion **and** the requester is a community member. For a design
 partner, an NDA user, an internal user, or a private thread: give **generic**
@@ -267,9 +285,9 @@ a compound CTA is worthless).
 - [ ] **Jargon glossed** — no CRD / controller / reconcile / webhook / pagination / transport / BFF or other build-side term survived; observable effects (smaller/faster) kept but user-framed with the mechanism dropped.
 - [ ] **Concrete scenario is sourced** — the "useful when…" is true of this feature, not borrowed or inferred as fact.
 - [ ] **At least one visual** (or a marked placeholder saying exactly what to capture) — except a pure digest, where it's optional.
-- [ ] **Docs URLs confirmed live** — none invented; pending docs use a DOCS PLACEHOLDER; one 📖 link per major/new feature (Improved/Fixed don't need one).
+- [ ] **Docs URLs confirmed live** — none invented; pending docs (or any not-yet-published link like an advisory/blog) use a placeholder or `[VERIFY]`; one 📖 link per major/new feature (Improved/Fixed don't need one).
 - [ ] **No internal issue link** — nothing points at `enhancements/issues/NNN`; PR, compare, and live-docs links are fine.
-- [ ] **Breaking changes** carry a `### Heads-up` group with migration path (+ any deadline); **security fixes** state what/who without exploit detail.
+- [ ] **Breaking changes** get a `### Heads-up` group (migration path + any deadline) and **security fixes** an explicit `### Security` group — both rendered above New/Improved/Fixed, without exploit detail; a hard-deadline breaking change is signaled in the title.
 - [ ] **Credit is safe** — any @-mention is a public community member from a public discussion; design partners/NDA/internal get generic credit or a consent-check in the handoff block.
 - [ ] **Exactly one CTA question** — no compound "and", no count/metric fishing, no yes/no; invites a story; no "let us know!" / "tell us below!"
 - [ ] **CLI releases** carry a `Full changelog:` compare-link footer, and code blocks use verified syntax (or the block is omitted and flagged).

@@ -51,6 +51,20 @@ datumctl <verified example command>
 📖 [<Docs link text>](https://datum.net/docs/<path>)
 > 📄 DOCS PLACEHOLDER — confirm the published URL before posting (draft: <PR link>)
 
+<!-- BREAKING / SECURITY: if they apply, render BOTH groups ABOVE New/Improved/Fixed. -->
+<!-- HEADS-UP: only if there's a breaking change / deprecation / removal. -->
+### Heads-up
+
+> [!IMPORTANT]
+> **<What's changing and by when.>** <Migration path: what the reader must do,
+> and the deadline if there is one.>
+
+<!-- SECURITY: only if there's a security fix. What was fixed + who should act; NO exploit detail. -->
+### Security
+
+- **<What was fixed and who should act>** — <link the advisory, or
+  [VERIFY: add link once published] if it isn't live yet>. <!-- credit the reporter only if disclosure is public -->
+
 <!-- REMAINING CHANGES: keep only the groups that have items. One line each,
      benefit-first. Do NOT repeat the hero here. -->
 ### New
@@ -65,20 +79,11 @@ datumctl <verified example command>
 
 - **<Change>** — <the symptom the user no longer hits>.
 
-<!-- HEADS-UP: only if there's a breaking change / deprecation / removal. -->
-### Heads-up
-
-> [!IMPORTANT]
-> **<What's changing and by when.>** <Migration path: what the reader must do,
-> and the deadline if there is one.>
-
-<!-- SECURITY: say what was fixed and who should act; NO exploit detail.
-     Link the advisory / credit the reporter only if disclosure is public. -->
-
-<!-- CLOSING: community credit + ONE pointed question + reaction invite. -->
+<!-- CLOSING: community credit (if any) + ONE pointed question + reaction invite. -->
 Thanks to @<username> for <requesting/reporting> this in <#public-discussion-link>.
 <!-- @-mention + link only a PUBLIC community member from a PUBLIC discussion.
-     Design partner / NDA / internal → generic credit, no @-mention, no link. -->
+     Design partner / NDA / internal → generic credit, no @-mention, no link.
+     No public requester? Omit this line entirely — the closing is just the CTA. -->
 
 <A single story-inviting question — no compound "and", no count/metric, no yes/no.>
 React with 👍 if <…>.
@@ -107,10 +112,10 @@ React with 👍 if <…>.
 | Hero feature (`###`) | Always, except a pure digest | The headline change + the visual + a sourced scenario |
 | Visual placeholder | Always, except a pure digest | Say exactly what to capture and in what format |
 | `### New / Improved / Fixed` | If there are secondary changes | Omit empty groups; one benefit-first line each; don't repeat the hero |
-| `### Heads-up` (`> [!IMPORTANT]`) | If there's a breaking change/deprecation | Migration path + deadline |
-| Security wording | If there's a security fix | What/who, no exploit detail; credit only if disclosure is public |
+| `### Heads-up` (`> [!IMPORTANT]`) | If there's a breaking change/deprecation | Migration path + deadline; rendered above New/Improved/Fixed |
+| `### Security` | If there's a security fix | What/who, no exploit detail; above New/Improved/Fixed; advisory link or `[VERIFY]`; credit only if disclosure is public |
 | 📖 docs link | One per major/new feature | Confirmed-live `datum.net/docs/...`, or a DOCS PLACEHOLDER — never invented |
-| Community credit | When someone requested/reported it | @-mention + link only a public community member from a public discussion |
+| Community credit | When a public requester exists | @-mention + link only a public community member from a public discussion; omit if none |
 | Closing question | Always | One story-inviting question + reaction invite |
-| Compare-link footer | CLI releases only | `compare/vA...vB` |
+| Compare-link footer | Versioned CLI releases only | `compare/vA...vB` |
 | Handoff block (`> [!WARNING]`) | Always (unless nothing to confirm) | Everything a human must clear before publish |
