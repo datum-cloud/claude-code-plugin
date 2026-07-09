@@ -2,6 +2,12 @@
 
 Notable changes to the Datum Cloud Claude Code plugins.
 
+## [1.8.1] - 2026-07-09
+
+### Changed
+
+- **GitHub conventions skill** (`pr-conventions`, datum-platform) — Added a rule forbidding hard-wrapped prose in PR descriptions, issues, and comments. GitHub reflows Markdown, so manual fixed-column wrapping (e.g. 80 characters) produces ragged, hard-to-edit text; hard-wrapping belongs only in commit messages. Added as a Core Principle and a row in the PR "What to Avoid" table.
+
 ## [1.1.0] - 2026-07-08
 
 ### Added
