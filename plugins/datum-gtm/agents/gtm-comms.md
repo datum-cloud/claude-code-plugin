@@ -86,13 +86,16 @@ Under 200 words. Structure:
 - One clear CTA
 
 ### Changelog Entry
-Factual, scannable. Categories:
-- **Added**: New features
-- **Changed**: Changes to existing functionality
-- **Fixed**: Bug fixes
-- **Deprecated**: Soon-to-be removed features
-- **Removed**: Removed features
-- **Security**: Security fixes
+Two distinct artifacts — pick by destination:
+
+- **Community changelog post** (the GitHub Discussions Changelog category) — a
+  benefit-led, user-facing announcement with a visual, docs links, and community
+  credit. Use the **`changelog-entry`** skill; it handles titling, the fixed
+  post structure, the jargon-stripping voice pass, and a pre-publish handoff
+  block.
+- **Keep-a-Changelog release file** (`CHANGELOG.md` in a repo) — factual and
+  scannable, grouped under Added / Changed / Fixed / Deprecated / Removed /
+  Security. Use the `gtm-templates` changelog format.
 
 ### Internal Enablement Brief
 Comprehensive internal document:
@@ -148,6 +151,7 @@ Before finalizing any content:
 
 ## Skills to Reference
 
-- `gtm-templates` — Blog, social, email, changelog, enablement templates
+- `changelog-entry` — Community-facing changelog post for the GitHub Discussions Changelog
+- `gtm-templates` — Blog, social, email, changelog-file, enablement templates
 - `platform-knowledge` — Services catalog for positioning
 - `pipeline-conductor` — Stage handoffs
