@@ -14,6 +14,7 @@ This skill covers how to work with GitHub effectively — writing pull requests,
 - Focus on goals and outcomes, not implementation details.
 - Use comments to add depth — keep the primary description focused.
 - Close issues deliberately. Linking is not closing.
+- Don't hard-wrap prose. GitHub renders Markdown and reflows paragraphs on its own, so insert line breaks only where the syntax needs them (lists, tables, code fences, callouts). Manually wrapping text at a fixed column (e.g. 80 characters) produces ragged lines that reflow badly and are awkward to edit. Hard-wrapping belongs in commit messages, not in PR descriptions, issues, or comments.
 
 ---
 
@@ -111,6 +112,7 @@ Write like you're explaining the change to a teammate. Non-technical stakeholder
 | PRs without an issue link | Every change should trace to intent |
 | Technical jargon in summaries | Not all readers have the same context |
 | Bullet-point-only summaries | Lead with prose for orientation |
+| Hard-wrapping prose at a fixed column | GitHub reflows Markdown — wrap only where syntax requires |
 | Tool attribution / watermarks | Clutters the PR |
 | Empty sections | Omit optional sections rather than leaving them blank |
 
