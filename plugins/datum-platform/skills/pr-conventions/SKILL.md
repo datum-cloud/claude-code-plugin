@@ -10,7 +10,8 @@ This skill covers how to work with GitHub effectively — writing pull requests,
 ## Core Principles
 
 - Write for humans, not machines. Avoid jargon unless the audience is explicitly technical.
-- Be concise. Respect the reader's time.
+- **Say it once.** Do not describe the same behaviour in prose and again in a checklist, or restate the summary in the test plan. Reference it instead.
+- **Cut every word carrying no fact.** One dense paragraph beats three that re-sell the same point. Brevity must not drop facts — compress, do not omit.
 - Focus on goals and outcomes, not implementation details.
 - Use comments to add depth — keep the primary description focused.
 - Close issues deliberately. Linking is not closing.
@@ -112,6 +113,8 @@ Write like you're explaining the change to a teammate. Non-technical stakeholder
 | PRs without an issue link | Every change should trace to intent |
 | Technical jargon in summaries | Not all readers have the same context |
 | Bullet-point-only summaries | Lead with prose for orientation |
+| Test-plan items that restate the summary | The test plan says what you verified, not what you wrote |
+| Paragraphs re-selling a point already made | Say it once, densely |
 | Hard-wrapping prose at a fixed column | GitHub reflows Markdown — wrap only where syntax requires |
 | Tool attribution / watermarks | Clutters the PR |
 | Empty sections | Omit optional sections rather than leaving them blank |
