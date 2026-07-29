@@ -2,6 +2,12 @@
 
 Notable changes to the Datum Cloud Claude Code plugins.
 
+## [1.8.2] - 2026-07-29
+
+### Changed
+
+- **GitHub conventions skill** (`pr-conventions`, datum-platform) — Sharpened "be concise" into two enforceable rules: say it once (no restating the summary as test-plan checkboxes, no describing the same behaviour in prose and again in a checklist) and cut every word carrying no fact, with a compress-don't-omit clause so brevity never costs facts. Added the two matching rows to the PR "What to Avoid" table.
+
 ## [1.8.1] - 2026-07-09
 
 ### Changed
