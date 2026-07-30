@@ -65,6 +65,36 @@ Once the marketplace is added, install plugins by name:
 /plugin install milo-activity@datum-claude-code-plugins
 ```
 
+> [!IMPORTANT]
+> Install at **user** scope. A project-scoped install binds the plugin to the
+> directory you installed it from, and that record then suppresses the
+> auto-install in every other repo — the plugin stays enabled in settings and
+> listed by `claude plugin list`, but its skills never load. The failure is
+> silent.
+
+```bash
+claude plugin install datum-platform@datum-claude-code-plugins --scope user
+```
+
+The CLI defaults to user scope; the interactive `/plugin` flow asks, so choose
+user there.
+
+### Already broken?
+
+If a repo's `CLAUDE.md` references a plugin skill that isn't available to you,
+re-pin at user scope:
+
+```bash
+claude plugin install datum-platform@datum-claude-code-plugins --scope user
+```
+
+That is sufficient on its own — leave any existing project-scoped entry alone.
+Removing it with `claude plugin uninstall --scope project` also strips the
+plugin from that repo's tracked `.claude/settings.json`, which breaks the
+declaration for everyone else.
+
+Confirm with `claude plugin list` (expect `Scope: user`).
+
 ### Local Development
 
 For local development, add the marketplace from your local directory:
