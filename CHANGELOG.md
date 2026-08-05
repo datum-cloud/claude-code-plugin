@@ -2,6 +2,16 @@
 
 Notable changes to the Datum Cloud Claude Code plugins.
 
+## [1.9.0] - 2026-08-04
+
+### Added
+
+- **PR/issue body gate** (`pr-op-gate`, datum-platform) — A `PreToolUse` hook that measures the body of a `gh pr|issue create|edit` call and blocks the post when it misses the countable rules: summary over four sentences, test plan over four checkboxes, file paths or identifiers in the opening post, a `Closes` keyword, an emoji heading, or hard-wrapped prose. Each denial names the rule and the count that broke it, so the draft gets revised before it goes up rather than after. Replaces per-repository copies of the same checklist that only ever advised.
+
+### Changed
+
+- **GitHub conventions skill** (`pr-conventions`, datum-platform) — Rewritten around a countable bar rather than qualitative advice, and cut by more than half so the skill reads the way it asks writers to write. Adds Orwell's writing rules and Google's technical writing rules as the style basis, states which limits the gate enforces, and drops the prose-about-prose tables and long worked examples that taught the verbosity the skill was meant to prevent.
+
 ## [1.8.2] - 2026-07-29
 
 ### Changed

@@ -1,0 +1,141 @@
+#!/usr/bin/env bash
+# PreToolUse gate for `gh pr|issue create|edit`.
+#
+# Measures the body being posted against the countable rules in the
+# pr-conventions skill and denies the call when it misses them. Style guidance
+# that cannot be counted rides along as advisory context.
+
+set -uo pipefail
+
+INPUT=$(cat)
+COMMAND=$(printf '%s' "$INPUT" | jq -r '.tool_input.command // empty')
+
+[[ "$COMMAND" =~ gh[[:space:]]+(pr|issue)[[:space:]]+(create|edit) ]] || exit 0
+
+ADVICE='Writing rules for this body (datum-platform:pr-conventions): cut every word carrying no fact; short word over long; active over passive; one idea per paragraph; no "simply"/"just"/"easily"; say it once — anything already in the linked issue gets linked, not restated. Depth belongs in a comment or the commit message.'
+
+emit() {
+  jq -n --arg ctx "$1" '{
+    hookSpecificOutput: {
+      hookEventName: "PreToolUse",
+      additionalContext: $ctx
+    }
+  }'
+}
+
+deny() {
+  jq -n --arg reason "$1" '{
+    hookSpecificOutput: {
+      hookEventName: "PreToolUse",
+      permissionDecision: "deny",
+      permissionDecisionReason: $reason
+    }
+  }'
+}
+
+unquote() {
+  local v="$1"
+  v="${v%\"}"; v="${v#\"}"
+  v="${v%\'}"; v="${v#\'}"
+  printf '%s' "$v"
+}
+
+extract_body() {
+  local path
+  path=$(unquote "$(printf '%s' "$COMMAND" | sed -n -E 's/.*(--body-file|-F)[= ]+([^ ]+).*/\2/p' | head -1)")
+  if [ -n "$path" ] && [ "$path" != "-" ] && [ -r "$path" ]; then
+    cat "$path"
+    return
+  fi
+  printf '%s' "$COMMAND" | sed -n -E "s/.*(--body|-b)[= ]+'([^']*)'.*/\2/p" | head -1
+}
+
+BODY=$(extract_body)
+
+if [ -z "${BODY//[[:space:]]/}" ]; then
+  emit "$ADVICE"
+  exit 0
+fi
+
+VIOLATIONS=$(printf '%s\n' "$BODY" | LC_ALL=C awk \
+  -v wide="$(printf '\xf0\x9f')" -v narrow="$(printf '\xe2')" '
+function flush_para(   i, n, wrapped) {
+  n = para_n
+  para_n = 0
+  if (n < 3) return
+  wrapped = 1
+  for (i = 1; i < n; i++) if (length(para[i]) < 55 || length(para[i]) > 92) wrapped = 0
+  if (wrapped) hardwrap = 1
+}
+
+/^```/ { fence = !fence; flush_para(); next }
+fence { next }
+
+/^#{1,6} / {
+  flush_para()
+  has_heading = 1
+  heading = tolower($0)
+  if (index($0, wide) || $0 ~ ("[" narrow "][\\x9a\\x9c\\x9d]")) emoji = 1
+  if (heading ~ /summary/) { section = "summary"; next }
+  if (heading ~ /test plan/) { section = "testplan"; next }
+  section = "other"
+  next
+}
+
+{
+  line = $0
+
+  if (tolower(line) ~ /(^|[^a-z])clos(e|es|ed)[ ]+#[0-9]/) closes = 1
+
+  n = split(line, part, "`")
+  for (i = 2; i <= n; i += 2) {
+    span = part[i]
+    if (span ~ /^https?:/) continue
+    if (span ~ /^\/[a-z0-9_~-]+(\/[a-z0-9_~{}-]+){0,2}$/) continue
+    if (span ~ /\//) code = 1
+    else if (span ~ /\.(go|ya?ml|json|md|sh|ts|tsx|js|py|tf)$/) code = 1
+    else if (span ~ /\(\)/) code = 1
+  }
+  if (line !~ /https?:/ && line ~ /(^|[ (])[A-Za-z0-9_.-]+\/[A-Za-z0-9_.\/-]+\.(go|ya?ml|json|md|sh|ts|tsx|js|py|tf)([ ),.]|$)/) code = 1
+
+  if (line ~ /^[ \t]*- \[[ xX]\]/) {
+    if (section == "testplan" || section == "") boxes++
+    else other_boxes++
+  }
+
+  if (section == "summary" || section == "") {
+    if (line ~ /[^ \t]/) {
+      summary = summary " " line
+      if (line ~ /^[ \t]*[-*] / && line !~ /[.!?][")]?[ \t]*$/) bullets++
+    }
+  }
+
+  if (line ~ /^[ \t]*$/ || line ~ /^[ \t]*([-*>|]|[0-9]+\.)/ || line ~ /^ {4}/) flush_para()
+  else para[++para_n] = line
+}
+
+END {
+  flush_para()
+  gsub(/\[[^]]*\]\([^)]*\)/, "LINK", summary)
+  gsub(/e\.g\.|i\.e\.|etc\.|vs\./, "", summary)
+  sentences = gsub(/[.!?]+([ \t]|$)/, "&", summary) + bullets
+  if (boxes == 0) boxes = other_boxes
+
+  if (has_heading && sentences > 4) printf "- Summary runs %d sentences against a cap of 4. Cut it to the problem, then what changes for users or operators.\n", sentences
+  if (boxes > 4) printf "- Test plan has %d checkboxes against a cap of 4. Collapse build/lint/test rows into one and keep behavioral outcomes only.\n", boxes
+  if (code) print "- Body names file paths, identifiers, or tool invocations. Those belong in a comment or the commit message, not the opening post."
+  if (closes) print "- Body uses a Closes keyword. Use Fixes or Resolves when the merge should close the issue, Related to when it should not."
+  if (emoji) print "- Body uses an emoji heading. Use GitHub callout syntax for emphasis instead."
+  if (hardwrap) print "- Body hard-wraps prose at a fixed column. GitHub reflows Markdown, so wrap only where syntax needs it."
+}
+')
+
+if [ -n "$VIOLATIONS" ]; then
+  deny "This body misses the datum-platform:pr-conventions bar:
+
+$VIOLATIONS
+Revise it and post again. $ADVICE"
+  exit 0
+fi
+
+emit "$ADVICE"
