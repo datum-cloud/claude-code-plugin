@@ -70,7 +70,7 @@ Slash commands users invoke (e.g., `/discover`, `/review`, `/deploy`). Defined i
 
 ### Hooks
 
-Automation hooks in `hooks/hooks.json`. Currently uses `PostToolUse` to run validation after Write/Edit operations.
+Automation hooks in `hooks/hooks.json`. `PostToolUse` runs validation after Write/Edit operations. `PreToolUse` runs `pr-op-gate`, which measures the body of a `gh pr|issue create|edit` call against the `pr-conventions` bar and denies the call when it misses.
 
 ### Pipeline
 

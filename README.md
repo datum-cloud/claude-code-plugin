@@ -6,7 +6,7 @@ A marketplace for Claude Code plugins providing platform engineering tools and a
 
 | Plugin | Description | Version |
 |--------|-------------|---------|
-| [datum-platform](./plugins/datum-platform/) | Kubernetes platform engineering automation with aggregated API servers, controller patterns, and GitOps deployment | 1.8.0 |
+| [datum-platform](./plugins/datum-platform/) | Kubernetes platform engineering automation with aggregated API servers, controller patterns, and GitOps deployment | 1.9.0 |
 | [datum-gtm](./plugins/datum-gtm/) | Go-to-market automation with commercial strategy, product discovery, and customer support | 1.1.0 |
 | [milo-activity](./plugins/milo-activity/) | Query audit logs, investigate incidents, and author ActivityPolicies using the Milo Activity service | 1.0.0 |
 
@@ -157,6 +157,7 @@ Kubernetes platform engineering automation with aggregated API servers, controll
 - 26 skill modules covering Kubernetes patterns, Go conventions, deployment workflows, and more
 - Pipeline orchestration for structured feature development
 - Automatic learning engine for pattern extraction
+- A PR/issue body gate that blocks a `gh` post when it misses the writing bar
 
 **Category:** Platform Engineering
 **Tags:** kubernetes, go, infrastructure, multi-tenant, devops
