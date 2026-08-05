@@ -105,6 +105,9 @@ Comments carry the depth the description sheds — tradeoffs, alternatives,
 questions. Plain prose. No headers; a header means the content belonged in the
 description. No tables except a genuine side-by-side comparison of options.
 
+Only @-mention handles grounded in the repo — CODEOWNERS, the commit history,
+existing reviewers — or ones the requester names. When unsure, omit.
+
 ## Callouts
 
 `> [!NOTE]`, `> [!TIP]`, `> [!IMPORTANT]`, `> [!WARNING]`, `> [!CAUTION]`.
