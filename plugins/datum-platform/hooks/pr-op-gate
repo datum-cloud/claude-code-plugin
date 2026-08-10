@@ -12,7 +12,7 @@ COMMAND=$(printf '%s' "$INPUT" | jq -r '.tool_input.command // empty')
 
 [[ "$COMMAND" =~ gh[[:space:]]+(pr|issue)[[:space:]]+(create|edit) ]] || exit 0
 
-ADVICE='Writing rules for this body (datum-platform:pr-conventions): cut every word carrying no fact; short word over long; active over passive; one idea per paragraph; no "simply"/"just"/"easily"; say it once — anything already in the linked issue gets linked, not restated. Depth belongs in a comment or the commit message.'
+ADVICE='Writing rules for this body (datum-platform:pr-conventions): cut every word carrying no fact; short word over long; active over passive; one idea per paragraph; many short paragraphs over one dense block; no "simply"/"just"/"easily"; no em dashes, no "load-bearing", no "gotchas"; an ordered list rather than arrows for a sequence; say it once, so anything already in the linked issue gets linked, not restated. Depth belongs in a comment or the commit message.'
 
 emit() {
   jq -n --arg ctx "$1" '{
@@ -58,7 +58,8 @@ if [ -z "${BODY//[[:space:]]/}" ]; then
 fi
 
 VIOLATIONS=$(printf '%s\n' "$BODY" | LC_ALL=C awk \
-  -v wide="$(printf '\xf0\x9f')" -v narrow="$(printf '\xe2')" '
+  -v wide="$(printf '\xf0\x9f')" -v narrow="$(printf '\xe2')" \
+  -v emdash="$(printf '\xe2\x80\x94')" '
 function flush_para(   i, n, wrapped) {
   n = para_n
   para_n = 0
@@ -86,6 +87,13 @@ fence { next }
   line = $0
 
   if (tolower(line) ~ /(^|[^a-z])clos(e|es|ed)[ ]+#[0-9]/) closes = 1
+
+  if (line !~ /^[ \t]*>/) {
+    p = line
+    while ((i = index(p, emdash)) > 0) { emdashes++; p = substr(p, i + 3) }
+    if (tolower(line) ~ /load[ -]bearing/) loadbearing = 1
+    if (tolower(line) ~ /gotcha/) gotchas = 1
+  }
 
   n = split(line, part, "`")
   for (i = 2; i <= n; i += 2) {
@@ -127,6 +135,9 @@ END {
   if (closes) print "- Body uses a Closes keyword. Use Fixes or Resolves when the merge should close the issue, Related to when it should not."
   if (emoji) print "- Body uses an emoji heading. Use GitHub callout syntax for emphasis instead."
   if (hardwrap) print "- Body hard-wraps prose at a fixed column. GitHub reflows Markdown, so wrap only where syntax needs it."
+  if (emdashes) printf "- Body uses %d em dash(es). Replace each with a period, a comma, or nothing.\n", emdashes
+  if (loadbearing) print "- Body says load-bearing. Name the dependency instead: what relies on the thing, and what breaks without it."
+  if (gotchas) print "- Body says gotchas. Use caveats, watch-outs, constraints, or limitations, in headings too."
 }
 ')
 
