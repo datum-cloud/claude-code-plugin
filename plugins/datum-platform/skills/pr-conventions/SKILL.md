@@ -15,7 +15,7 @@ Countable, so it can be checked rather than believed:
 
 | Limit | Applies to |
 |---|---|
-| Summary: **4 sentences or fewer** | PR and issue bodies, before the next heading |
+| Summary: **4 sentences or fewer**, in paragraphs of **one or two sentences** | PR and issue bodies, before the next heading |
 | Test plan: **4 checkboxes or fewer** | PRs; behavioral outcomes only, build/lint/test collapse to one row |
 | **No** file paths, identifiers, per-file breakdowns, or local tool invocations | PR and issue bodies |
 | **No** hard-wrapped prose | everywhere on GitHub |
@@ -53,12 +53,18 @@ ragged lines that are awkward to edit. Wrap only where syntax needs it: lists,
 tables, code fences. Hard-wrapping belongs in commit messages alone.
 
 **Cadence.** Break prose into many short, single-idea paragraphs. One-sentence
-paragraphs are good. A dense block that packs setup, mechanism, and consequence
-together gets split so each beat stands alone and a reader can skim. The shape
-that works: the problem, how it fails, what should have prevented it, the gap,
-what this change does, why it matters. Use a bulleted list for any enumerable
-beat rather than packing the items into a comma-run, and let prose carry the
-narrative.
+paragraphs are good.
+
+The summary's four-sentence budget is four paragraphs, not one block of four
+sentences. Give each beat its own paragraph, and pair two sentences only where
+splitting them would strand one. A four-sentence block passes the count and
+still reads as a wall.
+
+A dense block that packs setup, mechanism, and consequence together gets split
+so each beat stands alone and a reader can skim. The shape that works: the
+problem, how it fails, what should have prevented it, the gap, what this change
+does, why it matters. Use a bulleted list for any enumerable beat rather than
+packing the items into a comma-run, and let prose carry the narrative.
 
 ## Banned words and punctuation
 
@@ -93,7 +99,13 @@ PR body:
 ```markdown
 ## Summary
 
-<Problem first. Then what changes for users or operators, and why this way.>
+<The problem, in one sentence.>
+
+<How it fails, or why it matters.>
+
+<What this change does.>
+
+<The caveat or the limit, if there is one.>
 
 ## Test plan
 
@@ -221,7 +233,9 @@ the gate actually refuses.
 ```markdown
 ## Summary
 
-Users had no way to see recent activity on a resource, so understanding what changed meant reading audit logs. The resource detail page now shows the last 20 actions, newest first, drawn from the existing Activity API.
+Users had no way to see recent activity on a resource, so understanding what changed meant reading audit logs.
+
+The resource detail page now shows the last 20 actions, newest first, drawn from the existing Activity API.
 
 ## Test plan
 
