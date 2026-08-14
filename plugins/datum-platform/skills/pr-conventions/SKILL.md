@@ -7,7 +7,8 @@ description: Covers GitHub conventions for pull requests, issues, and comments i
 
 Rules for PR, issue, and comment bodies in every `datum-cloud`, `milo-os`, and
 `datum-labs` repository. The `pr-op-gate` hook enforces the countable ones on
-`gh pr|issue create|edit` and blocks the call when a body misses them.
+`gh pr|issue create|edit`. A new post has to meet the bar outright. An edit has
+to leave the post no further from the bar than it found it.
 
 ## The bar
 
@@ -247,25 +248,25 @@ title outlives every comment.
 `> [!NOTE]`, `> [!TIP]`, `> [!IMPORTANT]`, `> [!WARNING]`, `> [!CAUTION]`.
 Never an emoji header (`## ⚠️ ...`). If everything is highlighted, nothing is.
 
-## When the gate blocks a body you did not write
+## Editing a post you did not write
 
-`pr-op-gate` measures the whole body on `gh pr|issue edit`, so ticking a
-checkbox on an opening post written before the gate existed gets refused for
-violations already in that body. Rewriting the post to satisfy the gate would
-destroy the substance it exists to carry.
+On an edit, `pr-op-gate` reads the body already posted and scores it on the same
+rules as the body you are about to post. It refuses only where your version
+scores worse. Ticking a checkbox on a post written before the convention passes.
+Adding an em dash to that same post does not.
 
-Never route around the gate on a body you are authoring; fix those. For a state
-update to a body whose violations predate your change, diff the edit against the
-live body to show it is mechanical, apply it through the API, and say in your
-reply that the gate was bypassed and why. The silence is the thing to avoid, not
-the routing.
+So the misses that predate your change are not yours to fix, and the answer to a
+colleague's unformatted issue is never to rewrite their words.
 
-```
-gh api -X PATCH /repos/{owner}/{repo}/issues/{n} -F body=@file
-```
+An edit that touches only labels, a title, or a milestone is never measured
+against body rules at all.
 
-Whole-body prose rewrites do not need this. Reach for the API route only when
-the gate actually refuses.
+When the gate cannot read the posted body, from a failed fetch or a target it
+cannot resolve, it allows the edit and says so, listing what the body it is
+about to post misses. Fix whatever your edit introduced and leave the rest.
+
+There is no route around the gate, and no need for one. A body you are authoring
+gets fixed, not bypassed.
 
 ## Example
 
