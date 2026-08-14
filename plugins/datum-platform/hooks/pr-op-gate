@@ -12,7 +12,7 @@ COMMAND=$(printf '%s' "$INPUT" | jq -r '.tool_input.command // empty')
 
 [[ "$COMMAND" =~ gh[[:space:]]+(pr|issue)[[:space:]]+(create|edit) ]] || exit 0
 
-ADVICE='Writing rules for this body (datum-platform:pr-conventions): cut every word carrying no fact; short word over long; active over passive; one idea per paragraph; many short paragraphs over one dense block; no "simply"/"just"/"easily"; no em dashes, no "load-bearing", no "gotchas"; an ordered list rather than arrows for a sequence; say it once, so anything already in the linked issue gets linked, not restated. Depth belongs in a comment or the commit message.'
+ADVICE='Writing rules for this body (datum-platform:pr-conventions): cut every word carrying no fact; short word over long; active over passive; one idea per paragraph; short paragraphs whose length varies, rather than a dense block or a run of the same length; no "simply"/"just"/"easily"; no em dashes, no "load-bearing", no "gotchas", no "structural", no "why it matters" label, no "kept it honest"; a colon only where a period will not do, and a semicolon only where a comma or a period will not; an ordered list rather than arrows for a sequence; say it once, so anything already in the linked issue gets linked, not restated. Depth belongs in a comment or the commit message.'
 
 emit() {
   jq -n --arg ctx "$1" '{
@@ -77,6 +77,7 @@ fence { next }
   has_heading = 1
   heading = tolower($0)
   if (index($0, wide) || $0 ~ ("[" narrow "][\\x9a\\x9c\\x9d]")) emoji = 1
+  if (heading ~ /^#+[ ]+\**why it matters/) whymatters = 1
   if (heading ~ /summary/) { section = "summary"; next }
   if (heading ~ /test plan/) { section = "testplan"; next }
   section = "other"
@@ -93,6 +94,17 @@ fence { next }
     while ((i = index(p, emdash)) > 0) { emdashes++; p = substr(p, i + 3) }
     if (tolower(line) ~ /load[ -]bearing/) loadbearing = 1
     if (tolower(line) ~ /gotcha/) gotchas = 1
+
+    m = split(line, seg, "`")
+    prose = ""
+    for (j = 1; j <= m; j += 2) prose = prose " " seg[j]
+    prose = tolower(prose) " "
+    gsub(/https?:\/\/[^ )]*/, "", prose)
+    if (prose ~ /[^a-z]structural(ly)?[^a-z]/) structural = 1
+    if (prose ~ /why it matters[ ]*:/) whymatters = 1
+    if (prose ~ /^[ *]*why it matters[ *]*$/) whymatters = 1
+    if (prose ~ /(keep|keeps|kept|keeping) (it|them|us|you|things|everyone|everybody) honest/) honest = 1
+    if (prose ~ /that[^ ]*s a valid answer/ || prose ~ /that (is|was) a valid answer/) validanswer = 1
   }
 
   n = split(line, part, "`")
@@ -138,6 +150,10 @@ END {
   if (emdashes) printf "- Body uses %d em dash(es). Replace each with a period, a comma, or nothing.\n", emdashes
   if (loadbearing) print "- Body says load-bearing. Name the dependency instead: what relies on the thing, and what breaks without it."
   if (gotchas) print "- Body says gotchas. Use caveats, watch-outs, constraints, or limitations, in headings too."
+  if (structural) print "- Body says structural. Name the structure and what it forces, or drop the word. A term of art stays available inside code formatting."
+  if (whymatters) print "- Body labels a passage as why it matters. Drop the label, whether it is a lead-in or a heading, and let the sentence under it stand."
+  if (honest) print "- Body says something kept it honest. Say what the check compares and what it would have caught."
+  if (validanswer) print "- Body ratifies an answer as valid. Say ok, or say nothing."
 }
 ')
 

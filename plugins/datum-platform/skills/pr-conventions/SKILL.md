@@ -15,7 +15,7 @@ Countable, so it can be checked rather than believed:
 
 | Limit | Applies to |
 |---|---|
-| Summary: **4 sentences or fewer**, in paragraphs of **one or two sentences** | PR and issue bodies, before the next heading |
+| Summary: **4 sentences or fewer**, spread across paragraphs rather than massed in one | PR and issue bodies, before the next heading |
 | Test plan: **4 checkboxes or fewer** | PRs; behavioral outcomes only, build/lint/test collapse to one row |
 | **No** file paths, identifiers, per-file breakdowns, or local tool invocations | PR and issue bodies |
 | **No** hard-wrapped prose | everywhere on GitHub |
@@ -52,19 +52,28 @@ linked issue gets linked, not restated.
 ragged lines that are awkward to edit. Wrap only where syntax needs it: lists,
 tables, code fences. Hard-wrapping belongs in commit messages alone.
 
-**Cadence.** Break prose into many short, single-idea paragraphs. One-sentence
-paragraphs are good.
+**Cadence.** Break prose into short, single-idea paragraphs, and vary their
+length. Anything from one to three sentences is fine, and a longer paragraph
+followed by a single-sentence one is the shape to aim for.
 
-The summary's four-sentence budget is four paragraphs, not one block of four
-sentences. Give each beat its own paragraph, and pair two sentences only where
-splitting them would strand one. A four-sentence block passes the count and
-still reads as a wall.
+The rule is the variation, not a number. A run of same-length paragraphs is the
+thing to avoid, whether they all run long or all run short.
+
+Long individual sentences are fine. Length is a problem in paragraphs.
+
+No counter can tell a pleasing alternation from a monotonous one, so this one
+rests on the writer rather than on the gate. What the gate counts is sentences
+in the summary, and nothing else about shape.
+
+The summary's four-sentence budget is spread across paragraphs, not massed into
+one block. A four-sentence block passes the count and still reads as a wall.
 
 A dense block that packs setup, mechanism, and consequence together gets split
-so each beat stands alone and a reader can skim. The shape that works: the
-problem, how it fails, what should have prevented it, the gap, what this change
-does, why it matters. Use a bulleted list for any enumerable beat rather than
-packing the items into a comma-run, and let prose carry the narrative.
+so each beat stands alone and a reader can skim. The shape that works runs from
+the problem, to how it fails, to what should have prevented it, to the gap, to
+what this change does, and finally to what it changes for a reader. Use a
+bulleted list for any enumerable beat rather than packing the items into a
+comma-run, and let prose carry the narrative.
 
 ## Banned words and punctuation
 
@@ -74,10 +83,39 @@ packing the items into a comma-run, and let prose carry the narrative.
 | "load-bearing" | Name the dependency. "That silence is load-bearing" becomes "those alerts evaluate against series nothing produces, so they cannot fire." |
 | "gotchas" | Caveats, watch-outs, constraints, limitations. Applies to headings too. |
 | Arrows (`→`, `->`) for a sequence | An ordered list. Arrows for a simple mapping or rename are fine; prefer a preposition when one reads well. |
+| "structural" | Name the structure and what it forces. "The docs make it structural" becomes "the docs tell contributors to set the version in two files and nothing keeps the two in step." |
+| "why it matters:" | Nothing. Drop the label and let the sentence under it stand on its own. A `## Why it matters` heading is the same tic wearing a bigger hat. |
+| "kept it honest" (or kept them, or us) | Say what the check verifies and what it would have caught. "The test kept it honest" becomes "the test fails when the generated file drifts from its source." |
+| "that's a valid answer" | "ok", or nothing at all. Ratifying somebody's choice back to them carries no fact. |
 
 Stacked em dashes read as a verbal tic and blur where one thought ends and the
 next begins. A period forces the sentence to finish. "Load-bearing" gestures at
 importance without saying what depends on the thing or what breaks without it.
+
+"Structural" is the same gesture. It claims a thing is deep rather than
+incidental and then declines to say which structure produces it, which is the
+one fact a reader needs. The ban is the bare word in prose, not the idea: a
+genuine term of art stays available in code formatting, where `structural
+merge` reads as the name of a thing rather than as a verdict.
+
+A "why it matters" label announces that the point is coming instead of making
+it, and the sentence underneath survives the label's removal untouched. "Kept
+it honest" claims a check did its job without saying what it compared, so
+nobody can tell whether it would catch the next drift.
+
+**Colons and semicolons.** Don't use a colon where a period would work. Don't
+use a semicolon where a comma or a period would work.
+
+The tic is a punctuation mark standing in for a sentence break. "Docs-only; no
+behavior change" is two sentences wearing one, and so is "the cause is narrow:
+the poller never restarts". Write each as two and the prose picks up speed.
+
+Both marks have honest work to do. A colon introduces a genuine list, and
+either mark turns up inside code, a URL, a table row, `Related to`, a
+conventional-commit prefix, or a clock time. Across a hundred recently merged
+bodies a colon appears in prose in about half of them and a semicolon in a
+fifth, and a gate rule would have to refuse all of those to catch the tic in
+some of them. So this pair is guidance, and the gate stays out of it.
 
 ## Naming a cause
 
@@ -101,7 +139,7 @@ PR body:
 
 <The problem, in one sentence.>
 
-<How it fails, or why it matters.>
+<How it fails, and what it costs.>
 
 <What this change does.>
 
@@ -114,7 +152,8 @@ PR body:
 Fixes #<issue>
 ```
 
-Issue body: what needs to happen, why it matters, what success looks like.
+Issue body: what needs to happen, why it needs to happen, what success looks
+like.
 Outcome-focused acceptance criteria: "a user can do X", not "the handler calls
 Y". Keep the solution out of the description; it belongs in comments.
 
