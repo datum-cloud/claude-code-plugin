@@ -7,6 +7,9 @@
 # posted and is refused only on dimensions where it scores worse, so a state
 # update to a post written before the convention, or by someone else, passes.
 # Style guidance that cannot be counted rides along as advisory context.
+#
+# The phrase table comes from the clear-writing skill, so the doc and the gate
+# cannot drift apart. An empty table is a refusal, never a pass.
 
 set -uo pipefail
 
@@ -17,9 +20,12 @@ COMMAND=$(printf '%s' "$INPUT" | jq -r '.tool_input.command // empty')
 KIND="${BASH_REMATCH[1]}"
 VERB="${BASH_REMATCH[2]}"
 
-DIMENSIONS=13
+DIMENSIONS=15
 
-ADVICE='Writing rules for this body (datum-platform:pr-conventions): cut every word carrying no fact; short word over long; active over passive; one idea per paragraph; short paragraphs whose length varies, rather than a dense block or a run of the same length; no "simply"/"just"/"easily"; no em dashes, no "load-bearing", no "gotchas", no "structural", no "why it matters" label, no "kept it honest"; a colon only where a period will not do, and a semicolon only where a comma or a period will not; an ordered list rather than arrows for a sequence; say it once, so anything already in the linked issue gets linked, not restated. Depth belongs in a comment or the commit message.'
+PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
+PHRASE_SOURCE="$PLUGIN_ROOT/skills/clear-writing/SKILL.md"
+
+ADVICE='Writing rules for this body (datum-platform:pr-conventions and clear-writing): answer what, who, when, where, how, why, and how much; cut every word carrying no fact; short word over long; verbs over -tion nouns; active over passive; numbers over adjectives; one idea per paragraph; short paragraphs whose length varies, rather than a dense block or a run of the same length; no "simply"/"just"/"easily"; no em dashes, no "load-bearing", no "gotchas", no "structural", no "why it matters" label, no "kept it honest"; none of the wordy phrases, Latin tags, or jargon in the clear-writing table; a colon only where a period will not do, and a semicolon only where a comma or a period will not; an ordered list rather than arrows for a sequence; say it once, so anything already in the linked issue gets linked, not restated. Depth belongs in a comment or the commit message.'
 
 emit() {
   jq -n --arg ctx "$1" '{
@@ -57,10 +63,41 @@ extract_body() {
   printf '%s' "$COMMAND" | sed -n -E "s/.*(--body|-b)[= ]+'([^']*)'.*/\2/p" | head -1
 }
 
+load_phrases() {
+  LC_ALL=C awk -F'|' '
+/^## / { on = ($0 ~ /^## Phrases the gate refuses/); next }
+!on || $0 !~ /^\|/ { next }
+{
+  gsub(/^[ \t]+|[ \t]+$/, "", $2)
+  gsub(/^[ \t]+|[ \t]+$/, "", $3)
+}
+$2 == "Phrase" || $2 ~ /^-+$/ { next }
+{
+  n = split($2, forms, / \/ /)
+  for (i = 1; i <= n; i++) printf "%s\t%s\n", tolower(forms[i]), $3
+}
+' "$PHRASE_SOURCE"
+}
+
 measure() {
   LC_ALL=C awk \
     -v wide="$(printf '\xf0\x9f')" -v narrow="$(printf '\xe2')" \
     -v emdash="$(printf '\xe2\x80\x94')" '
+FNR == NR {
+  t = index($0, "\t")
+  if (t == 0) next
+  np++
+  phrase[np] = substr($0, 1, t - 1)
+  fix[np] = substr($0, t + 1)
+  esc = ""
+  for (k = 1; k <= length(phrase[np]); k++) {
+    c = substr(phrase[np], k, 1)
+    esc = esc (c == "." ? "[.]" : c)
+  }
+  re[np] = "(^|[^a-z])" esc "([^a-z]|$)"
+  next
+}
+
 function flush_para(   i, n, wrapped) {
   n = para_n
   para_n = 0
@@ -106,6 +143,14 @@ fence { next }
     if (prose ~ /^[ *]*why it matters[ *]*$/) whymatters = 1
     if (prose ~ /(keep|keeps|kept|keeping) (it|them|us|you|things|everyone|everybody) honest/) honest = 1
     if (prose ~ /that[^ ]*s a valid answer/ || prose ~ /that (is|was) a valid answer/) validanswer = 1
+    for (k = 1; k <= np; k++) {
+      cnt = gsub(re[k], "&", prose)
+      if (cnt == 0) continue
+      wordy += cnt
+      if (seen[k]) continue
+      seen[k] = 1
+      hits = hits (hits == "" ? "" : "|") "\"" phrase[k] "\" (write: " fix[k] ")"
+    }
   }
 
   n = split(line, part, "`")
@@ -156,8 +201,10 @@ END {
   printf "whymatters\t%d\n", (whymatters ? 1 : 0)
   printf "honest\t%d\n", (honest ? 1 : 0)
   printf "validanswer\t%d\n", (validanswer ? 1 : 0)
+  printf "wordy\t%d\n", wordy
+  printf "wordyhits\t%s\n", hits
 }
-'
+' "$PHRASES" -
 }
 
 compare() {
@@ -252,6 +299,18 @@ END {
     else
       print "- Body ratifies an answer as valid. Say ok, or say nothing."
   }
+  if (worse("wordy", 0)) {
+    nb = split(base["wordyhits"], bh, "|")
+    for (i = 1; i <= nb; i++) inbase[bh[i]] = 1
+    nc = split(cur["wordyhits"], ch, "|")
+    list = ""
+    for (i = 1; i <= nc; i++) if (!(ch[i] in inbase)) list = list (list == "" ? "" : "; ") ch[i]
+    if (list == "") { list = cur["wordyhits"]; gsub(/\|/, "; ", list) }
+    if (mode == "edit")
+      printf "- Edit adds wording the clear-writing skill refuses: %s.\n", list
+    else
+      printf "- Body uses %d instance(s) of wording the clear-writing skill refuses: %s.\n", cur["wordy"], list
+  }
 }
 ' "$2" "$3"
 }
@@ -325,6 +384,13 @@ fi
 
 WORK=$(mktemp -d) || { emit "$ADVICE"; exit 0; }
 trap 'rm -rf "$WORK"' EXIT
+
+PHRASES="$WORK/phrases"
+load_phrases > "$PHRASES" 2>/dev/null
+if [ ! -s "$PHRASES" ]; then
+  deny "The datum-platform gate could not load the phrase table from the clear-writing skill, so it refused rather than pass this body unchecked. Report the gate failure instead of retrying the same call."
+  exit 0
+fi
 
 printf '%s\n' "$BODY" | measure > "$WORK/cur"
 

@@ -2,6 +2,17 @@
 
 Notable changes to the Datum Cloud Claude Code plugins.
 
+## [1.12.0] - 2026-09-04
+
+### Added
+
+- **Clear writing skill** (`clear-writing`, datum-platform) — The prose basis for every Datum repository, adapted from the European Economic and Social Committee's *Clear Writing* guide. Carries only what the Orwell and Google rules in `pr-conventions` do not: the seven questions a piece of writing has to answer, verbs over nominalized nouns, sentence order and modifier placement, restrictive commas, concrete over abstract, word pairs and false friends, and a technical section on READMEs, error messages, code comments, and reference docs. Includes a phrase table of wordy constructions, Latin tags, and jargon with plain replacements.
+
+### Changed
+
+- **PR/issue body gate** (`pr-op-gate`, datum-platform) — Now refuses any phrase in the clear-writing table, naming each one and its replacement. The gate reads the table from the skill at run time, so the doc and the enforcement cannot drift, and an unreadable table is a refusal rather than a pass. Edits stay judged on what they add, so a phrase already in a colleague's post is not yours to fix.
+- **GitHub conventions skill** (`pr-conventions`), **commit conventions** (`commit-conventions`), and the **tech-writer agent** now point at `clear-writing` instead of restating it.
+
 ## [1.9.0] - 2026-08-04
 
 ### Added
