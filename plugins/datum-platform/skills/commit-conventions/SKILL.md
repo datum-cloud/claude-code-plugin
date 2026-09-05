@@ -76,9 +76,14 @@ feat: Adding user authentication endpoint  ✗ awkward phrasing
 - Changes requiring context
 - Anything where "why" isn't obvious from the diff
 
+## One Logical Change
+
+A message that needs the word "and" twice is usually two commits. Split them.
+
 ## Body Content
 
-Focus on **why**, not **what** (the diff shows what changed).
+Focus on **why**, not **what** (the diff shows what changed). Body prose
+follows the `clear-writing` skill.
 
 Answer these questions:
 - What problem does this solve?

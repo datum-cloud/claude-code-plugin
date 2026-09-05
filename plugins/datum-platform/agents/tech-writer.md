@@ -23,7 +23,8 @@ Before doing any work, gather context in this order:
 3. Read `Taskfile.yaml` for command documentation
 4. Read `config/` for deployment documentation
 5. Read existing docs in `docs/` for style and structure
-6. Read your runbook at `.claude/skills/runbooks/tech-writer/RUNBOOK.md` if it exists
+6. Read the `clear-writing` skill. Every sentence you write is measured against it
+7. Read your runbook at `.claude/skills/runbooks/tech-writer/RUNBOOK.md` if it exists
 
 ## Audiences
 

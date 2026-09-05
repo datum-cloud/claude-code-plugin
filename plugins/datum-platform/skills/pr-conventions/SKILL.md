@@ -21,12 +21,17 @@ Countable, so it can be checked rather than believed:
 | **No** file paths, identifiers, per-file breakdowns, or local tool invocations | PR and issue bodies |
 | **No** hard-wrapped prose | everywhere on GitHub |
 | **No** em dashes, and none of the banned phrases below | everywhere |
+| **No** wordy phrase, Latin tag, or jargon from the `clear-writing` table | everywhere |
 | Callouts only for a caveat that changes what a reader would do | everywhere |
 
 Target: a reader with no context grasps the why in 30 seconds. Depth goes in a
 comment or the commit message, where length costs nothing.
 
 ## Writing rules
+
+The `clear-writing` skill is the prose basis: the seven questions a body has
+to answer, verbs over nouns, concrete over abstract, and the phrase table the
+gate reads. This section carries only what is specific to GitHub.
 
 Orwell, applied:
 
