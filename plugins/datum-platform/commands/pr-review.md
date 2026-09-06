@@ -4,6 +4,8 @@ description: >
   Run two read-only opus reviewers on a pull request, compare their verdicts,
   and either carry the PR to auto-merge through the fixer or put the choice
   to you. Drives the pr-review-loop skill.
+tools: Read, Grep, Glob, Bash, Agent
+model: opus
 disable-model-invocation: true
 argument-hint: "[pr-number]"
 ---
@@ -28,9 +30,11 @@ PR number: $ARGUMENTS
 1. **Resolve the PR.** With a number, use it. Without one, `gh pr view --json number` on the current branch. If neither resolves, stop with the error below.
 2. **Read the `pr-review-loop` skill** and its `protocol.md`.
 3. **Apply the cost caps** from the skill. Say which reviewers will run and why.
-4. **Launch the reviewers** in the background, in one message, with the PR number, base SHA, and head SHA, as the skill describes.
-5. **Keep working** until both reports land, then compare them under the five agreement conditions and the always-escalate list.
-6. **Act.** Spawn `pr-review-fixer` when the conditions hold and say in one line what it is doing. Otherwise put the choice to the user with a recommendation.
+4. **Fetch the head once** in the PR's worktree, as the skill describes, so the reviewers never fetch.
+5. **Launch the reviewers** in one message, with the PR number, base SHA, and head SHA. They run in the background on their own.
+6. **Keep working** until both reports land, then compare them under the five agreement conditions and the always-escalate list.
+7. **Act.** Spawn `pr-review-fixer` for its fix phase when the conditions hold and say in one line what it is doing. Otherwise put the choice to the user with a recommendation.
+8. **Re-review.** If the fixer changed a `blocker` or `warning`, run both reviewers once more on the pushed head. Two `merge` verdicts, or two `hold` with nothing above `nit`, unlock the fixer's ready phase. A second `hold` goes to the user.
 
 ## Output
 
@@ -42,7 +46,7 @@ Both run in the background. I will pick them up when they land.
 
 pr-adversary: VERDICT: hold. <reason>
 pr-conventions-reviewer: VERDICT: hold. <reason>
-Agreement: all five conditions hold. Spawning pr-review-fixer to apply 3 findings, push, and set auto-merge.
+Agreement: all five conditions hold. Spawning pr-review-fixer to apply 3 findings and push. Both reviewers run again on the new head before ready and auto-merge.
 ```
 
 or

@@ -30,7 +30,7 @@ The session acts without asking only when both reviews agree cleanly. All five h
 4. **The fixes are compatible.** Neither reviewer asks to remove what the other asks to add, and neither wants a file the other wants left alone.
 5. **Neither reviewer questions the premise.** Neither says the PR should be closed, split, or rewritten to a different goal.
 
-When all five hold, spawn `pr-review-fixer` with the PR number, the repository, the base branch, both reports in full, and the findings to apply, and say in one line what it is doing. Both `merge` with no findings means the fixer skips straight to the ready path. Both `hold` with compatible findings means the fixer applies them and then runs the ready path.
+When all five hold, spawn `pr-review-fixer` for its fix phase with the PR number, the repository, the base branch, both reports in full, and the findings to apply, and say in one line what it is doing. The fixer applies every finding that is not a `decision`, whatever the verdicts were: two `merge` verdicts with warnings still get their warnings fixed. Both `merge` with no findings, or with nothing above `nit`, means the fixer goes straight through to the ready path in one run.
 
 When any condition fails, put the choice to the human with a recommendation, then act on the answer.
 
@@ -48,23 +48,33 @@ A reviewer tags each of these `decision`, which fails condition 3. The session c
 
 ## The fix and ready path
 
-Once the boundary is clear, the fixer:
+Once the boundary is clear, the fixer's fix phase:
 
 1. Applies the findings in the worktree that already holds the PR branch, found with `git worktree list`, never in a shared checkout and never through `isolation: worktree`.
 2. Commits signed, one commit per coherent change, message wrapped at 80 and shaped by `commit-conventions`. Never passes a flag that skips signing.
 3. Rewrites the body if a reviewer said to, which sends it back through `pr-op-gate` on the way out.
-4. Pushes and waits for CI green on the new head.
-5. Runs `gh pr ready`, which is what makes GitHub request the CODEOWNERS teams.
-6. Requests the configured human reviewer, if one is configured.
-7. Enables auto-merge with the merge method the repository's ruleset allows.
-8. Posts one comment on the PR recording both verdicts and what each reviewer ran, so the human approver sees what was already checked.
+4. Pushes and returns the new head SHA to the session.
+
+## The re-review
+
+If the fix phase changed anything tagged `blocker` or `warning`, the session fetches the new head and launches both reviewers once more on it, with the same prompt shape and the same five conditions. The ready path unlocks only when that second pass returns two `merge` verdicts, or two `hold` verdicts with nothing left above `nit`.
+
+This is one re-review, not a loop. A second pass that still holds a `blocker` or `warning`, or that fails any of the five conditions, goes to the human with both reports and a recommendation. A fix phase that touched only `nit` findings, or had nothing to apply, needs no second pass and continues into the ready path in the same run.
+
+Then the fixer's ready phase:
+
+5. Waits for CI green on the head.
+6. Runs `gh pr ready`, which is what makes GitHub request the CODEOWNERS teams.
+7. Requests the configured human reviewer, if one is configured.
+8. Enables auto-merge with the merge method the repository's ruleset allows.
+9. Posts one comment on the PR recording both verdicts and what each reviewer ran, so the human approver sees what was already checked.
 
 ## Guards the path relies on
 
-**Auto-merge cannot fire unaided on a guarded branch.** A ruleset that requires an approving review, a code-owner review, and approval of the last push, and dismisses stale reviews on every push, means the fixer's push always lands in front of a human, and the step 8 comment is what that human reads first. A repository without that ruleset does not get the same guard, and the fixer says so in its comment when it enables auto-merge there.
+**Auto-merge is enabled in every repository, and a guarded branch keeps a human in front of it.** A ruleset that requires an approving review, a code-owner review, and approval of the last push, and dismisses stale reviews on every push, means the fixer's push always lands in front of a human, and the step 9 comment is what that human reads first. Where the base branch's ruleset has no review requirement, auto-merge can complete on CI alone, and the comment says so in one line.
 
-**The human reviewer comes from the repository, never from a guess.** The fixer reads `prReview.humanReviewer` from the repository's `.claude/settings.json`. Absent means request nobody beyond the code owners. No handle is ever invented or taken from history.
+**The human reviewer comes from the repository, never from a guess.** The fixer reads `prReview.humanReviewer` from the repository's `.claude/settings.json`, guarding for a repository that has no such file. Absent means request nobody beyond the code owners. No handle is ever invented or taken from history.
 
-**The merge method comes from the ruleset, never from the repository flags.** The fixer reads `gh api repos/{owner}/{repo}/rules/branches/<base>` and uses the method the `pull_request` rule allows. The repository API's `allow_squash_merge` and related flags report a setting the ruleset overrides.
+**The merge method comes from the ruleset, never from the repository flags.** The fixer reads `gh api repos/{owner}/{repo}/rules/branches/<base>` and uses the method the `pull_request` rule allows. When the endpoint returns no `pull_request` rule, the fallback is `--merge`. The repository API's `allow_squash_merge` and related flags report a setting the ruleset overrides.
 
-**Reviewers never write.** Both reviewer agents carry an enumerated read-only allowlist and a `PreToolUse` hook that refuses any `gh api` call with a method or body flag. Neither posts to GitHub. The only GitHub write the loop produces is the fixer's path.
+**Reviewers never write.** Both reviewer agents carry an enumerated read-only allowlist, which scopes what runs without a prompt, and the plugin registers a `PreToolUse` hook that fires only for those two agents and refuses any `gh api` call with a method or body flag and any shell wrapper such as `eval`, `sh -c`, or `xargs` around `gh`. Neither reviewer fetches, and neither posts to GitHub. The only GitHub writes the loop produces are the fixer's.
