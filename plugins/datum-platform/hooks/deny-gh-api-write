@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+# PreToolUse guard for the read-only reviewer agents.
+#
+# Refuses any `gh api` call that carries a method or body flag, so an
+# allowlist that grants `gh api` for reads cannot be used to POST, PATCH, PUT,
+# or DELETE. Fails closed: a missing jq or stdin that is not JSON is a refusal,
+# never a pass.
+
+set -uo pipefail
+
+refuse() {
+  printf 'deny-gh-api-write: %s\n' "$1" >&2
+  exit 2
+}
+
+command -v jq >/dev/null 2>&1 || refuse "jq is not installed, so the call was refused rather than passed unchecked"
+
+INPUT=$(cat)
+COMMAND=$(printf '%s' "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null) || refuse "hook input is not JSON, so the call was refused rather than passed unchecked"
+
+[[ "$COMMAND" =~ gh[[:space:]]+api ]] || exit 0
+
+FLAG=$(printf '%s' "$COMMAND" | awk '
+{
+  n = split($0, t, /[ \t]+/)
+  for (i = 1; i <= n; i++) {
+    tok = t[i]
+    if (tok == "gh" && t[i + 1] == "api") { inseg = 1; i++; continue }
+    if (tok ~ /^(&&|\|\||;|\|)$/) { inseg = 0; continue }
+    if (!inseg) continue
+    if (tok ~ /^-[XfF]/ || tok ~ /^--(method|field|raw-field|input)(=|$)/) { print tok; exit 0 }
+  }
+}
+')
+
+[ -z "$FLAG" ] && exit 0
+
+refuse "gh api with $FLAG writes to GitHub, and this reviewer is read-only; use gh pr view, gh pr diff, or a bare gh api GET instead"
