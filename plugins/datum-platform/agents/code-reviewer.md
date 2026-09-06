@@ -5,6 +5,8 @@ description: >
   frontend-dev, or sre complete changes. Use when someone says "review this"
   or "check this code" or "is this ready to merge." Reviews for correctness,
   security, convention compliance, and platform integration completeness.
+  Handles code and diffs with no pull request; a PR number, a PR URL, or "I
+  opened a PR" routes to the pr-review-loop skill instead.
   Read-only — produces findings, never modifies code.
 tools: Read, Grep, Glob, Bash(git *), Bash(go *), Bash(./skills/*/scripts/*)
 disallowedTools: Write, Edit, NotebookEdit
