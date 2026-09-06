@@ -9,7 +9,6 @@ description: >
   changelog entry" or "prepare enablement materials."
 tools: Read, Grep, Glob, Bash
 model: opus
-permissionMode: plan
 ---
 
 # GTM Communications Agent
