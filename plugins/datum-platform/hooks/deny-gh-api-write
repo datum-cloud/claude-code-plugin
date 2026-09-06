@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
-# PreToolUse guard for the read-only reviewer agents.
+# PreToolUse guard that keeps the read-only reviewer agents off GitHub writes.
 #
-# Refuses any `gh api` call that carries a method or body flag, so an
-# allowlist that grants `gh api` for reads cannot be used to POST, PATCH, PUT,
-# or DELETE. Fails closed: a missing jq or stdin that is not JSON is a refusal,
-# never a pass.
+# Fires only when the hook input names pr-adversary or pr-conventions-reviewer
+# as the agent. Scans the whole command as one string and refuses `gh api` with
+# a method or body flag, and any shell wrapper (eval, sh -c, exec, xargs) that
+# reaches gh. Fails closed: empty input, input that is not JSON, or a missing
+# jq or awk is a refusal, never a pass.
 
 set -uo pipefail
 
@@ -14,25 +15,45 @@ refuse() {
 }
 
 command -v jq >/dev/null 2>&1 || refuse "jq is not installed, so the call was refused rather than passed unchecked"
+command -v awk >/dev/null 2>&1 || refuse "awk is not installed, so the call was refused rather than passed unchecked"
 
 INPUT=$(cat)
+[ -n "$INPUT" ] || refuse "hook input is empty, so the call was refused rather than passed unchecked"
+
+AGENT=$(printf '%s' "$INPUT" | jq -r '.agent_type // empty' 2>/dev/null) || refuse "hook input is not JSON, so the call was refused rather than passed unchecked"
+
+case "${AGENT##*:}" in
+  pr-adversary|pr-conventions-reviewer) ;;
+  *) exit 0 ;;
+esac
+
 COMMAND=$(printf '%s' "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null) || refuse "hook input is not JSON, so the call was refused rather than passed unchecked"
+[ -n "$COMMAND" ] || exit 0
 
-[[ "$COMMAND" =~ gh[[:space:]]+api ]] || exit 0
+COMMAND=$(printf '%s' "$COMMAND" | tr -s '[:space:]' ' ')
 
-FLAG=$(printf '%s' "$COMMAND" | awk '
-{
-  n = split($0, t, /[ \t]+/)
-  for (i = 1; i <= n; i++) {
-    tok = t[i]
-    if (tok == "gh" && t[i + 1] == "api") { inseg = 1; i++; continue }
-    if (tok ~ /^(&&|\|\||;|\|)$/) { inseg = 0; continue }
-    if (!inseg) continue
-    if (tok ~ /^-[XfF]/ || tok ~ /^--(method|field|raw-field|input)(=|$)/) { print tok; exit 0 }
-  }
+VERDICT=$(CMD="$COMMAND" awk '
+BEGIN {
+  s = ENVIRON["CMD"]
+  w = "[^A-Za-z0-9_-]"
+  b = "(^|" w ")"
+  e = "(" w "|$)"
+  f = "(^|[ \"\047(`])"
+  if (s ~ (b "(eval |sh -c|bash -c|zsh -c|exec |xargs)" ".*" b "gh" e)) { print "wrapper"; exit }
+  if (s !~ (b "gh api" e)) exit
+  method = (s ~ (f "(-X|--method)"))
+  body = (s ~ (f "(-f|-F|--field|--raw-field|--input)"))
+  if (!method && !body) exit
+  t = s; all = gsub(/gh api/, "&", t)
+  t = s; gql = gsub(/gh api graphql/, "&", t)
+  if (!method && all == gql && index(s, "mutation") == 0) exit
+  print (method ? "method" : "body")
 }
 ')
 
-[ -z "$FLAG" ] && exit 0
-
-refuse "gh api with $FLAG writes to GitHub, and this reviewer is read-only; use gh pr view, gh pr diff, or a bare gh api GET instead"
+case "$VERDICT" in
+  "") exit 0 ;;
+  wrapper) refuse "a shell wrapper around gh (eval, sh -c, bash -c, zsh -c, exec, xargs) is refused for this read-only reviewer; call gh directly" ;;
+  method) refuse "gh api with a method flag (-X, --method) writes to GitHub and this reviewer is read-only; use gh pr view, gh pr diff, or a bare gh api GET instead" ;;
+  body) refuse "gh api with a body flag (-f, -F, --field, --raw-field, --input) writes to GitHub and this reviewer is read-only; the whole command is scanned, so a -F in a later segment such as grep -F is refused too; rerun the read without it" ;;
+esac
