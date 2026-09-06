@@ -7,7 +7,7 @@ A marketplace for Claude Code plugins providing platform engineering tools and a
 | Plugin | Description | Version |
 |--------|-------------|---------|
 | [datum-platform](./plugins/datum-platform/) | Kubernetes platform engineering automation with aggregated API servers, controller patterns, and GitOps deployment | 1.13.0 |
-| [datum-gtm](./plugins/datum-gtm/) | Go-to-market automation with commercial strategy, product discovery, and customer support | 1.1.0 |
+| [datum-gtm](./plugins/datum-gtm/) | Go-to-market automation with commercial strategy, product discovery, and customer support | 1.1.1 |
 | [milo-activity](./plugins/milo-activity/) | Query audit logs, investigate incidents, and author ActivityPolicies using the Milo Activity service | 1.0.0 |
 
 ## Installation
@@ -158,7 +158,7 @@ Kubernetes platform engineering automation with aggregated API servers, controll
 - Pipeline orchestration for structured feature development
 - Automatic learning engine for pattern extraction
 - A PR/issue body gate that blocks a `gh` post when it misses the writing bar
-- A two-reviewer loop (`/pr-review`) that runs an adversarial and a conventions review on every PR a session opens, then fixes, pushes, re-reviews, and sets auto-merge when the two agree. Skill-driven, no automatic hook yet. Name a human reviewer under `prReview.humanReviewer` in the repository's `.claude/settings.json`; absent means code owners only
+- A two-reviewer loop (`/pr-review`) that runs an adversarial and a conventions review on every PR a session opens, then fixes, pushes, re-reviews, and sets auto-merge when the two agree. Skill-driven, no automatic hook yet. A registered hook refuses GitHub writes, git mutations, and shell wrappers for the reviewer agents as a backstop against an accidental write, not a control. Name a human reviewer under `prReview.humanReviewer` in the repository's `.claude/settings.json`; absent means code owners only
 
 **Category:** Platform Engineering
 **Tags:** kubernetes, go, infrastructure, multi-tenant, devops

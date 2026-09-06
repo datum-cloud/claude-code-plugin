@@ -6,11 +6,18 @@ Notable changes to the Datum Cloud Claude Code plugins.
 
 ### Added
 
-- **PR review loop.** Two read-only opus reviewers with different angles review a pull request at once. When both agree, a fixer applies their findings, pushes, waits for a second pass, then marks the PR ready and enables auto-merge. Run `/pr-review [number]`, or let the `pr-review-loop` skill trigger on a PR the session opens. Skill-driven, no automatic hook yet. A registered hook, firing only for the two reviewer agents, refuses `gh api` writes and shell wrappers.
+- **PR review loop.** Two read-only opus reviewers with different angles review a pull request at once. When both agree, a fixer applies their findings, pushes, waits for a second pass, then marks the PR ready and enables auto-merge. Run `/pr-review [number]`, or let the `pr-review-loop` skill trigger on a PR the session opens. Skill-driven, no automatic hook yet. A registered hook, firing only for the reviewer agents, refuses GitHub writes, git mutations, and shell wrappers. It is a backstop against an accidental write, not a control: the reviewers' prompts carry the rule, and the branch ruleset's human approval is the last gate.
 
 ### Fixed
 
-- **Marketplace catalogue versions**. The catalogue entries for `datum-platform` and `datum-gtm` now match their plugin manifests. They had sat at 1.0.0 while the manifests moved, and the validator warned on every run.
+- **Marketplace catalogue versions.** The catalogue entries for `datum-platform` and `datum-gtm` now match their plugin manifests. They had sat at 1.0.0 while the manifests moved, and the validator warned on every run.
+- **Inert agent permission fields.** `code-reviewer` drops `permissionMode` and the `Bash(...)` scoping in its `tools` line, neither of which the agent loader honours, and its body now says what it may run. The datum-gtm agents get the same fix in 1.1.1.
+
+## [1.1.1] - 2026-09-05
+
+### Fixed
+
+- **Inert agent permission fields** (datum-gtm). The four agents drop `permissionMode` and the `Bash(...)` scoping in their `tools` lines, neither of which the agent loader honours, and each body now says what it may run.
 
 ## [1.12.0] - 2026-09-04
 

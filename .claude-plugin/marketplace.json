@@ -22,7 +22,7 @@
     {
       "name": "datum-gtm",
       "description": "Go-to-market automation with commercial strategy, product discovery, and customer support",
-      "version": "1.1.0",
+      "version": "1.1.1",
       "author": {
         "name": "Datum Cloud",
         "email": "engineering@datumcloud.io"
