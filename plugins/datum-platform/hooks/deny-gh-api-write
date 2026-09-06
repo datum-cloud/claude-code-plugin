@@ -1,11 +1,58 @@
 #!/usr/bin/env bash
-# PreToolUse guard that keeps the read-only reviewer agents off GitHub writes.
+# PreToolUse guard that keeps the read-only reviewer agents off anything that
+# writes.
 #
-# Fires only when the hook input names pr-adversary or pr-conventions-reviewer
-# as the agent. Scans the whole command as one string and refuses `gh api` with
-# a method or body flag, and any shell wrapper (eval, sh -c, exec, xargs) that
-# reaches gh. Fails closed: empty input, input that is not JSON, or a missing
-# jq or awk is a refusal, never a pass.
+# Fires only when the hook input names pr-adversary, pr-conventions-reviewer,
+# or code-reviewer as the agent. A subagent's `tools:` line grants Bash whole,
+# so nothing in an agent definition stops a command; this hook is the only
+# mechanical check. It is a backstop against an accidental write by an agent
+# whose prompt already says it never changes anything. It is not a control
+# against a determined agent: a command can be assembled in ways this scan
+# does not see, so the reviewer's prompt carries the rule and the branch
+# ruleset's human approval is the last gate.
+#
+# What it refuses for those three agents, after normalising the command
+# (line continuations joined, remaining newlines treated as `;`, whitespace
+# runs collapsed, `'` and `"` stripped, backslashes stripped, lowercased):
+#
+#   - git mutations: push, commit, tag, branch -d/-D/-m/-M, reset --hard,
+#     checkout, switch, rebase, merge, worktree add/remove/prune, stash.
+#   - gh writes: pr comment/review/edit/merge/ready/close/create/checkout/
+#     reopen/lock/unlock/update-branch, issue comment/create/edit/close/
+#     reopen/delete/transfer/pin/unpin/lock/unlock/develop, release, repo
+#     create/delete/edit/fork/sync/rename/archive/unarchive/set-default,
+#     workflow run/enable/disable, run rerun/cancel/delete, label create/
+#     edit/delete/clone, secret, variable, ssh-key, gpg-key, auth, gist
+#     create/edit/delete, cache delete, extension install/remove/upgrade,
+#     config set, and project writes.
+#   - gh api with -X/--method other than GET or HEAD, scanned across the
+#     whole command; with -f, -F, --field, --raw-field, or --input, or with
+#     `$(` or a backtick, scanned from `gh api` to the next `|`, `||`, `&&`,
+#     `&`, `;`, or end of command. The one exception is `gh api graphql` whose
+#     body flags all carry `query=...` inline, with no `@`, no `$(`, no
+#     backtick, no --input, and no `mutation` in the segment.
+#   - network clients and inline interpreters anywhere: curl, wget, http, xh,
+#     python -c, python3 -c, node -e, perl -e, ruby -e.
+#   - shell wrappers anywhere: eval, exec, xargs, alias, source, `.` as a
+#     command, sh/bash/zsh -c, env followed by gh, git, or curl, and a
+#     variable assigned at the start of a segment and then expanded as the
+#     command (`GH=gh; $GH api`).
+#
+# Accepted false positives, all refused although they read: git tag -l, git
+# stash list, git branch -d on nothing, gh release view/list, gh auth status,
+# gh secret list, gh variable list, kubectl exec, `gh api ... | grep -x`,
+# `ls -X && gh api ...`, a `-f` or `-x` token inside a --jq filter, gh api
+# graphql with variables passed as separate -F flags, and gh api with global
+# flags between `api` and `graphql`.
+#
+# Accepted false negative: quotes are stripped before the scan, so a `|`
+# inside a former --jq string ends the gh api segment early and a body flag
+# placed after it is not seen. The method scan still covers the whole
+# command, so `--jq '.a | .b' -X POST` is refused.
+#
+# Fails closed once a reviewer name is in the input: a missing jq or awk, or
+# input that is not JSON, is a refusal. Input naming no reviewer passes before
+# any tool is required, so a machine without jq is not blocked for everyone.
 
 set -uo pipefail
 
@@ -14,46 +61,120 @@ refuse() {
   exit 2
 }
 
+INPUT=$(cat)
+
+case "$INPUT" in
+  *pr-adversary*|*pr-conventions-reviewer*|*code-reviewer*) ;;
+  *) exit 0 ;;
+esac
+
 command -v jq >/dev/null 2>&1 || refuse "jq is not installed, so the call was refused rather than passed unchecked"
 command -v awk >/dev/null 2>&1 || refuse "awk is not installed, so the call was refused rather than passed unchecked"
-
-INPUT=$(cat)
-[ -n "$INPUT" ] || refuse "hook input is empty, so the call was refused rather than passed unchecked"
 
 AGENT=$(printf '%s' "$INPUT" | jq -r '.agent_type // empty' 2>/dev/null) || refuse "hook input is not JSON, so the call was refused rather than passed unchecked"
 
 case "${AGENT##*:}" in
-  pr-adversary|pr-conventions-reviewer) ;;
+  pr-adversary|pr-conventions-reviewer|code-reviewer) ;;
   *) exit 0 ;;
 esac
 
 COMMAND=$(printf '%s' "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null) || refuse "hook input is not JSON, so the call was refused rather than passed unchecked"
 [ -n "$COMMAND" ] || exit 0
 
-COMMAND=$(printf '%s' "$COMMAND" | tr -s '[:space:]' ' ')
-
 VERDICT=$(CMD="$COMMAND" awk '
+function prog(name) {
+  return "(^|[^a-z0-9_.-])([^ ]*/)?" name "( |$)"
+}
+
+function flag_value(str, re,   v) {
+  if (!match(str, re)) return ""
+  v = substr(str, RSTART, RLENGTH)
+  sub(/^ /, "", v)
+  return v
+}
+
+function bad_method(str,   rest, v) {
+  rest = str
+  while (match(rest, "(^| )(-x|--method)=? *[^ ]*")) {
+    v = substr(rest, RSTART, RLENGTH)
+    rest = substr(rest, RSTART + RLENGTH)
+    sub(/^ ?(-x|--method)=? */, "", v)
+    if (v != "get" && v != "head") return 1
+  }
+  return 0
+}
+
+function graphql_body_ok(seg,   rest, v) {
+  if (seg ~ /(^| )--input/) return 0
+  if (index(seg, "@") || index(seg, "$(") || index(seg, "`") || index(seg, "mutation")) return 0
+  rest = seg
+  while (match(rest, "(^| )(-f|--field|--raw-field)=? *[^ ]*")) {
+    v = substr(rest, RSTART, RLENGTH)
+    rest = substr(rest, RSTART + RLENGTH)
+    sub(/^ ?(-f|--field|--raw-field)=? */, "", v)
+    if (v !~ /^query=/) return 0
+  }
+  return 1
+}
+
 BEGIN {
   s = ENVIRON["CMD"]
-  w = "[^A-Za-z0-9_-]"
-  b = "(^|" w ")"
-  e = "(" w "|$)"
-  f = "(^|[ \"\047(`])"
-  if (s ~ (b "(eval |sh -c|bash -c|zsh -c|exec |xargs)" ".*" b "gh" e)) { print "wrapper"; exit }
-  if (s !~ (b "gh api" e)) exit
-  method = (s ~ (f "(-X|--method)"))
-  body = (s ~ (f "(-f|-F|--field|--raw-field|--input)"))
-  if (!method && !body) exit
-  t = s; all = gsub(/gh api/, "&", t)
-  t = s; gql = gsub(/gh api graphql/, "&", t)
-  if (!method && all == gql && index(s, "mutation") == 0) exit
-  print (method ? "method" : "body")
+  gsub(/\\\n/, "", s)
+  gsub(/\n/, " ; ", s)
+  gsub(/["\047\\]/, "", s)
+  gsub(/[ \t\r]+/, " ", s)
+  s = tolower(s)
+
+  sep = "(^|[;&|({] *)"
+  opts = "(-[^ ]* ([^ -][^ ]* )?)*"
+
+  if (s ~ prog("(eval|exec|xargs|alias|source)")) { print "wrapper"; exit }
+  if (s ~ (sep "\\. ")) { print "wrapper"; exit }
+  if (s ~ (prog("(sh|bash|zsh)") "(-[^ ]* )*-[a-z]*c( |$)")) { print "wrapper"; exit }
+  if (s ~ (prog("env") ".*" prog("(gh|git|curl)"))) { print "wrapper"; exit }
+  if (s ~ (sep "((export|declare|local|typeset|readonly) )?[a-z_][a-z0-9_]*=[^ ]* *;? *\\$")) { print "wrapper"; exit }
+
+  if (s ~ prog("(curl|wget|http|xh)")) { print "network"; exit }
+  if (s ~ (prog("(python|python3)") "-c( |$)")) { print "network"; exit }
+  if (s ~ (prog("(node|perl|ruby)") "-e( |$)")) { print "network"; exit }
+
+  gitw = "(push|commit|tag|branch (-[dm]|--delete|--move)|reset --hard|checkout|switch|rebase|merge|worktree (add|remove|prune)|stash)( |$)"
+  if (s ~ (prog("git") opts gitw)) { print "git"; exit }
+
+  ghw = "(pr (comment|review|edit|merge|ready|close|create|checkout|reopen|lock|unlock|update-branch)"
+  ghw = ghw "|issue (comment|create|edit|close|reopen|delete|transfer|pin|unpin|lock|unlock|develop)"
+  ghw = ghw "|release|repo (create|delete|edit|fork|sync|rename|archive|unarchive|set-default)"
+  ghw = ghw "|workflow (run|enable|disable)|run (rerun|cancel|delete)|label (create|edit|delete|clone)"
+  ghw = ghw "|secret|variable|ssh-key|gpg-key|auth|gist (create|edit|delete)|cache delete"
+  ghw = ghw "|extension (install|remove|upgrade)|config set"
+  ghw = ghw "|project (create|edit|delete|close|copy|link|unlink|mark-template|item-add|item-create|item-delete|item-edit|item-archive|field-create|field-delete))( |$)"
+  if (s ~ (prog("gh") opts ghw)) { print "ghsub"; exit }
+
+  ghapi = prog("gh") "(-[^ ]* )*api( |$)"
+  if (s !~ ghapi) exit
+
+  if (bad_method(s)) { print "method"; exit }
+
+  n = split(s, segs, /\|\|?|&&?|;/)
+  for (i = 1; i <= n; i++) {
+    if (!match(segs[i], ghapi)) continue
+    seg = substr(segs[i], RSTART)
+    if (index(seg, "$(") || index(seg, "`")) { print "subst"; exit }
+    if (seg ~ /(^| )(-f|--field|--raw-field|--input)/) {
+      if (seg ~ (prog("gh") "api graphql( |$)") && graphql_body_ok(seg)) continue
+      print "body"; exit
+    }
+  }
 }
 ')
 
 case "$VERDICT" in
   "") exit 0 ;;
-  wrapper) refuse "a shell wrapper around gh (eval, sh -c, bash -c, zsh -c, exec, xargs) is refused for this read-only reviewer; call gh directly" ;;
-  method) refuse "gh api with a method flag (-X, --method) writes to GitHub and this reviewer is read-only; use gh pr view, gh pr diff, or a bare gh api GET instead" ;;
-  body) refuse "gh api with a body flag (-f, -F, --field, --raw-field, --input) writes to GitHub and this reviewer is read-only; the whole command is scanned, so a -F in a later segment such as grep -F is refused too; rerun the read without it" ;;
+  wrapper) refuse "a shell wrapper (eval, exec, xargs, alias, source, sh -c, env, or a variable expanded as the command) is refused for this read-only reviewer; call gh and git directly" ;;
+  network) refuse "a network client or inline interpreter (curl, wget, http, xh, python -c, node -e, perl -e, ruby -e) is refused for this read-only reviewer; use gh for GitHub reads" ;;
+  git) refuse "a git command that changes the checkout or the remote (push, commit, tag, checkout, switch, rebase, merge, reset --hard, stash, worktree add) is refused for this read-only reviewer; use git diff, git log, git show, git worktree list" ;;
+  ghsub) refuse "a gh subcommand that writes to GitHub (pr comment/review/edit/merge/ready, issue comment/create/edit/close, release, and similar) is refused for this read-only reviewer; use gh pr view, gh pr diff, gh pr checks, gh issue view, gh run view" ;;
+  method) refuse "gh api with a method other than GET or HEAD writes to GitHub and this reviewer is read-only; the method flag is scanned across the whole command, so drop it or name GET" ;;
+  subst) refuse "gh api with command substitution in its arguments hides what is sent and this reviewer is read-only; write the arguments out" ;;
+  body) refuse "gh api with a body flag (-f, -F, --field, --raw-field, --input) writes to GitHub and this reviewer is read-only; the only exception is gh api graphql with inline query=... fields and no mutation" ;;
 esac
