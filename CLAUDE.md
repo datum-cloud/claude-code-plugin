@@ -54,7 +54,7 @@ Specialized agents with narrow expertise. Each agent has:
 - A specific role in the pipeline (discovery → design → implementation → review → deploy)
 - Skills they load based on task
 
-**datum-platform agents**: plan, api-dev, frontend-dev, sre, test-engineer, code-reviewer, tech-writer
+**datum-platform agents**: plan, api-dev, frontend-dev, sre, test-engineer, code-reviewer, tech-writer, operational-reviewer, pr-adversary, pr-conventions-reviewer, pr-review-fixer
 **datum-gtm agents**: product-discovery, commercial-strategist, gtm-comms, support-triage
 
 ### Skills

@@ -6,8 +6,7 @@ Notable changes to the Datum Cloud Claude Code plugins.
 
 ### Added
 
-- **PR review loop** (`pr-review-loop`, `/pr-review`, datum-platform). Two read-only opus reviewers run at once on every pull request a session opens, with no knowledge of each other. `pr-adversary` reproduces the failure the PR claims to fix, runs every check the body cites, and attacks each claim. `pr-conventions-reviewer` works out where the change lands once merged, renders it the way Flux will, checks that patch targets anchor, looks for collisions with other open PRs, and measures the commits and body against the `pr-conventions` bar. Both return one line per finding and a `merge` or `hold` verdict. When the two agree cleanly, `pr-review-fixer` applies the findings in the PR's own worktree, commits signed, pushes, waits for CI, marks the PR ready, requests the reviewer named in the repository's settings, enables auto-merge with the method the branch ruleset allows, and posts one comment recording both verdicts. Any `decision` finding, split verdict, or hedge goes to a person instead. This release is opt-in: the loop runs when the skill triggers or on `/pr-review`, and no hook fires it yet.
-- **Read-only guard for reviewer agents** (`deny-gh-api-write`, datum-platform). A `PreToolUse` hook that refuses any `gh api` call carrying a method or body flag, so a reviewer whose allowlist grants `gh api` for reads cannot post through it. Fails closed when it cannot read its input.
+- **PR review loop.** Two read-only opus reviewers with different angles review a pull request at once. When both agree, a fixer applies their findings, pushes, waits for a second pass, then marks the PR ready and enables auto-merge. Run `/pr-review [number]`, or let the `pr-review-loop` skill trigger on a PR the session opens. Skill-driven, no automatic hook yet. A registered hook, firing only for the two reviewer agents, refuses `gh api` writes and shell wrappers.
 
 ### Fixed
 
