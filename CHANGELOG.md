@@ -6,7 +6,7 @@ Notable changes to the Datum Cloud Claude Code plugins.
 
 ### Added
 
-- **PR review loop.** Two read-only opus reviewers with different angles review a pull request at once. When both agree, a fixer applies their findings, pushes, waits for a second pass, then marks the PR ready and enables auto-merge. Run `/pr-review [number]`, or let the `pr-review-loop` skill trigger on a PR the session opens. Skill-driven, no automatic hook yet. A registered hook, firing only for the reviewer agents, refuses GitHub writes, git mutations, and shell wrappers. It is a backstop against an accidental write, not a control: the reviewers' prompts carry the rule, and the branch ruleset's human approval is the last gate.
+- **PR review loop.** Two read-only opus reviewers with different angles review a pull request at once. When both agree, a fixer applies their findings, pushes, waits for a second pass, then marks the PR ready and enables auto-merge. Run `/pr-review [number]`, or let the `pr-review-loop` skill trigger on a PR the session opens. Skill-driven, no automatic trigger yet. A guard hook, firing only for the reviewer agents, refuses GitHub writes, git mutations, cluster changes, and shell wrappers. It is a backstop against an accidental write, not a control: the reviewers' prompts carry the rule, and the branch ruleset's human approval is the last gate.
 
 ### Fixed
 

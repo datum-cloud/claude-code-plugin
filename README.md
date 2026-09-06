@@ -158,7 +158,7 @@ Kubernetes platform engineering automation with aggregated API servers, controll
 - Pipeline orchestration for structured feature development
 - Automatic learning engine for pattern extraction
 - A PR/issue body gate that blocks a `gh` post when it misses the writing bar
-- A two-reviewer loop (`/pr-review`) that runs an adversarial and a conventions review on every PR a session opens, then fixes, pushes, re-reviews, and sets auto-merge when the two agree. Skill-driven, no automatic hook yet. A registered hook refuses GitHub writes, git mutations, and shell wrappers for the reviewer agents as a backstop against an accidental write, not a control. Name a human reviewer under `prReview.humanReviewer` in the repository's `.claude/settings.json`; absent means code owners only
+- A two-reviewer loop (`/pr-review`) that runs an adversarial and a conventions review on every PR a session opens, then fixes, pushes, re-reviews, and sets auto-merge when the two agree. Skill-driven, no automatic trigger yet. A guard hook refuses GitHub writes, git mutations, cluster changes, and shell wrappers for the reviewer agents as a backstop against an accidental write, not a control. Name a human reviewer under `prReview.humanReviewer` in the repository's `.claude/settings.json`; absent means code owners only
 
 **Category:** Platform Engineering
 **Tags:** kubernetes, go, infrastructure, multi-tenant, devops
