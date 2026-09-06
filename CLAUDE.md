@@ -32,7 +32,7 @@ plugins/
     agents/                 # Agent definitions (markdown)
     skills/                 # Knowledge modules (SKILL.md + topic files)
     commands/               # Slash command definitions
-    hooks/hooks.json        # Automation hooks (PostToolUse)
+    hooks/                  # hooks.json plus the PreToolUse gates it runs
     scripts/                # Utility scripts (auto-validate.sh)
 
   datum-gtm/
@@ -54,7 +54,7 @@ Specialized agents with narrow expertise. Each agent has:
 - A specific role in the pipeline (discovery → design → implementation → review → deploy)
 - Skills they load based on task
 
-**datum-platform agents**: plan, api-dev, frontend-dev, sre, test-engineer, code-reviewer, tech-writer
+**datum-platform agents**: plan, api-dev, frontend-dev, sre, test-engineer, code-reviewer, tech-writer, operational-reviewer, pr-adversary, pr-conventions-reviewer, pr-review-fixer
 **datum-gtm agents**: product-discovery, commercial-strategist, gtm-comms, support-triage
 
 ### Skills
@@ -70,7 +70,7 @@ Slash commands users invoke (e.g., `/discover`, `/review`, `/deploy`). Defined i
 
 ### Hooks
 
-Automation hooks in `hooks/hooks.json`. `PostToolUse` runs validation after Write/Edit operations. `PreToolUse` runs `pr-op-gate`, which measures the body of a `gh pr|issue create|edit` call against the `pr-conventions` bar. A create must meet the bar; an edit is scored against the body already posted and denied only where it comes out worse. The gate reads its phrase table from the `clear-writing` skill at run time, so editing that table changes what the gate refuses.
+Automation hooks in `hooks/hooks.json`. `PostToolUse` runs validation after Write/Edit operations. Two `PreToolUse` hooks run on every Bash call. `pr-op-gate` measures the body of a `gh pr|issue create|edit` call against the `pr-conventions` bar: a create must meet the bar; an edit is scored against the body already posted and denied only where it comes out worse. The gate reads its phrase table from the `clear-writing` skill at run time, so editing that table changes what the gate refuses. `deny-gh-api-write` fires only when the calling agent is `pr-adversary`, `pr-conventions-reviewer`, or `code-reviewer`, and refuses GitHub writes, git mutations, network clients, and shell wrappers for them. An agent's `tools:` line cannot scope Bash, so this hook is the only mechanical check on those read-only reviewers, and it is a backstop against an accidental write rather than a control.
 
 ### Pipeline
 
