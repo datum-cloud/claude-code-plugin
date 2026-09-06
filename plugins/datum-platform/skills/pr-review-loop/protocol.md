@@ -63,18 +63,18 @@ This is one re-review, not a loop. A second pass that still holds a `blocker` or
 
 Then the fixer's ready phase:
 
-5. Waits for CI green on the head.
+5. Waits for CI green on the head. A PR with no checks at all, in a repository with no workflows and no reporting app, counts as green, and the step 9 comment says so.
 6. Runs `gh pr ready`, which is what makes GitHub request the CODEOWNERS teams.
 7. Requests the configured human reviewer, if one is configured.
-8. Enables auto-merge with the merge method the repository's ruleset allows.
+8. Enables auto-merge with the merge method the repository's ruleset allows. Where the repository setting Allow auto-merge is off and `gh pr merge --auto` is refused, the fixer leaves it off and the step 9 comment says the PR merges by hand once approved.
 9. Posts one comment on the PR recording both verdicts and what each reviewer ran, so the human approver sees what was already checked.
 
 ## Guards the path relies on
 
-**Auto-merge is enabled in every repository, and a guarded branch keeps a human in front of it.** A ruleset that requires an approving review, a code-owner review, and approval of the last push, and dismisses stale reviews on every push, means the fixer's push always lands in front of a human, and the step 9 comment is what that human reads first. Where the base branch's ruleset has no review requirement, auto-merge can complete on CI alone, and the comment says so in one line.
+**Auto-merge is expected in every repository, and a guarded branch keeps a human in front of it.** A ruleset that requires an approving review, a code-owner review, and approval of the last push, and dismisses stale reviews on every push, means the fixer's push always lands in front of a human, and the step 9 comment is what that human reads first. Where the base branch's ruleset has no review requirement, auto-merge can complete on CI alone, and the comment says so in one line. Where the repository has auto-merge switched off, the comment says that instead, and a person merges after approving.
 
-**The human reviewer comes from the repository, never from a guess.** The fixer reads `prReview.humanReviewer` from the repository's `.claude/settings.json`, guarding for a repository that has no such file. Absent means request nobody beyond the code owners. No handle is ever invented or taken from history.
+**The human reviewer comes from the repository, never from a guess.** The fixer reads `prReview.humanReviewer` from the PR worktree's `.claude/settings.json`, then `.claude/settings.local.json`, first non-empty value wins, guarding for a repository that has neither file. Absent means request nobody beyond the code owners. No handle is ever invented or taken from history.
 
 **The merge method comes from the ruleset, never from the repository flags.** The fixer reads `gh api repos/{owner}/{repo}/rules/branches/<base>` and uses the method the `pull_request` rule allows. When the endpoint returns no `pull_request` rule, the fallback is `--merge`. The repository API's `allow_squash_merge` and related flags report a setting the ruleset overrides.
 
-**Reviewers never write.** Both reviewer agents carry an enumerated read-only allowlist, which scopes what runs without a prompt, and the plugin registers a `PreToolUse` hook that fires only for those two agents and refuses any `gh api` call with a method or body flag and any shell wrapper such as `eval`, `sh -c`, or `xargs` around `gh`. Neither reviewer fetches, and neither posts to GitHub. The only GitHub writes the loop produces are the fixer's.
+**Reviewers never write.** The reviewer agents' tool lists grant Bash whole. `Bash(...)` scoping has no effect in an agent's `tools` line, so the list restricts nothing. The plugin registers a `PreToolUse` hook, `deny-gh-api-write`, that fires only for `pr-adversary`, `pr-conventions-reviewer`, and `code-reviewer` and refuses the GitHub write surface (`gh pr`, `gh issue`, `gh release` and similar writes, and `gh api` with a method other than GET or HEAD or with a body), git mutations, network clients, and shell wrappers. It is a backstop against an accidental write, not a control. A determined agent could still evade it, so each reviewer's prompt carries the rule that it never runs a command that changes anything, and the branch ruleset's human approval is the last gate. Neither reviewer fetches, and neither posts to GitHub. The only GitHub writes the loop produces are the fixer's.

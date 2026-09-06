@@ -15,7 +15,7 @@ description: >
 
 A session that writes a change is the worst judge of it. This skill runs two reviewers that do not know about each other on every pull request the session opens, then acts on what they agree on and asks a person about the rest.
 
-The reviewers are agents, so their model pin, tool allowlist, and read-only posture hold every time they run. This skill is the protocol around them, and it holds only when the session follows it. Follow it.
+The reviewers are agents, so their model pin and read-only posture hold every time they run. Their tool lists do not restrict Bash. The plugin hook refuses the GitHub write surface, git mutations, and shell wrappers for the reviewer agents as a backstop against an accidental write; a determined agent could still evade it, so the reviewers' prompts carry the rule and the branch ruleset's human approval is the last gate. This skill is the protocol around them, and it holds only when the session follows it. Follow it.
 
 ## When to run
 
@@ -34,7 +34,7 @@ Each reviewer costs roughly 100k to 160k tokens and the pair plus the fixer adds
 - **Never skip on reach.** Any diff that touches a shared base, a production overlay, a cluster overlay that tracks trunk, or an alert rule gets both reviewers regardless of size. Blast radius decides, not diff size.
 - **Run in the background.** Keep working while the reviews run and pick them up when they land. Both reviewer agents carry `background: true`.
 
-When one reviewer is skipped, the agreement conditions in `protocol.md` cannot all hold, because they need two finished reports. A single-reviewer run is advisory: report its findings and verdict to the user and do not spawn the fixer without their say.
+When one reviewer is skipped, the agreement conditions in `${CLAUDE_PLUGIN_ROOT}/skills/pr-review-loop/protocol.md` cannot all hold, because they need two finished reports. A single-reviewer run is advisory: report its findings and verdict to the user and do not spawn the fixer without their say.
 
 ## Launch
 
@@ -67,7 +67,7 @@ While they run, keep working. When both notifications arrive, read both reports 
 
 ## Compare and act
 
-Apply `protocol.md`. In short: check the five agreement conditions and the always-escalate list, then either spawn `pr-review-fixer` for its fix phase with both reports and say in one line what it is doing, or put the choice to the user with a recommendation and act on the answer.
+Apply `${CLAUDE_PLUGIN_ROOT}/skills/pr-review-loop/protocol.md`. In short: check the five agreement conditions and the always-escalate list, then either spawn `pr-review-fixer` for its fix phase with both reports and say in one line what it is doing, or put the choice to the user with a recommendation and act on the answer.
 
 When the fixer pushes a fix for any `blocker` or `warning`, fetch the new head the same way and launch both reviewers once more on it, with the same prompt and the same conditions. Only two `merge` verdicts, or two `hold` with nothing left above `nit`, unlock the fixer's ready phase. That is one re-review, not a loop: a second `hold` with a `blocker` or `warning` still standing goes to the user with both reports and a recommendation.
 
@@ -81,11 +81,11 @@ Never post a reviewer's report to GitHub yourself. The fixer posts one comment a
 { "prReview": { "humanReviewer": "<github-login>" } }
 ```
 
-Absent means request nobody beyond the code owners. The fixer never guesses a login, and never takes one from commit history or a reviewer report. Auto-merge is enabled in every repository; where the base branch's ruleset has no review requirement, the fixer's comment says so in one line.
+The fixer reads it from the PR worktree, `settings.json` first and then `settings.local.json`, first non-empty value wins. Absent means request nobody beyond the code owners. The fixer never guesses a login, and never takes one from commit history or a reviewer report. Auto-merge is expected in every repository; where the base branch's ruleset has no review requirement, the fixer's comment says so in one line, and where the repository has auto-merge switched off, the comment says the PR merges by hand once approved. A PR with no checks at all counts as CI green, and the comment says that too.
 
 ## Output contract
 
-Both reviewers return the same shape, defined once in `protocol.md`: one line per finding as `<path>:<line>: <severity>: <problem>. <fix>.`, then `VERDICT: merge|hold. <reason>`. Severity is `blocker`, `warning`, `nit`, or `decision`, and `decision` is what routes a review to a person rather than to the fixer.
+Both reviewers return the same shape, defined once in `${CLAUDE_PLUGIN_ROOT}/skills/pr-review-loop/protocol.md`: one line per finding as `<path>:<line>: <severity>: <problem>. <fix>.`, then `VERDICT: merge|hold. <reason>`. Severity is `blocker`, `warning`, `nit`, or `decision`, and `decision` is what routes a review to a person rather than to the fixer.
 
 ## Files
 
