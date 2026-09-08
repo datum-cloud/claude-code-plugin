@@ -1,0 +1,88 @@
+---
+name: model-tiers
+description: >
+  Which model a subagent gets, and why. Use when spawning any agent, writing
+  or editing an agent definition, or choosing the model for a skill or command
+  that forks. Covers the three tiers, the signal that picks each one, what a
+  cheaper agent does when it meets a design decision, and why the model never
+  moves the acceptance bar.
+---
+
+# Model Tiers
+
+Match the model to the task's design risk, not to its importance.
+
+A review that gates production is important and still bounded: it works from an explicit brief against a diff that already exists. Writing the change under review is not bounded, because a wrong approach there is not caught by rerunning.
+
+Three tiers. Every agent definition pins one in its `model:` frontmatter, and a spawn takes the pin rather than overriding it.
+
+## opus
+
+Work that authors a change carrying design risk:
+
+- writing a pull request from an issue
+- designing an alert rule, a metric join, or a query
+- Pulumi programs, controllers, API types, anything that ships behavior
+- planning briefs that other agents then execute
+
+The signal: getting it wrong means someone reworks the approach rather than fixes a line. That costs a review round or a bad release, which is more than the model saved.
+
+## sonnet
+
+Bounded work against an explicit brief:
+
+- the adversarial and conventions reviewers, and the re-review of a fixed head
+- the fixer that applies findings the reviewers already agreed on
+- a rebase whose conflict shape is known
+- mechanical renames
+- cutting a release from a recipe
+- rewriting a body, ticking a checkbox, posting a bookkeeping comment
+- drift checks and gate runs
+
+The signal: the brief already says what finished looks like, and the work is to reach it. Judgment goes into meeting the criteria, not into deciding what they should be.
+
+## haiku
+
+Read-only lookup and enumeration, where the answer is a list or a table of `path:line`:
+
+- every caller of a symbol, every file matching a pattern, every version pinned
+- monitors and polling loops
+- documentation lookups, simple greps, and summaries of what came back
+
+The signal: the answer already exists in the repository or the docs, and the work is to fetch and shape it.
+
+## Escalation
+
+A sonnet agent that reaches a design decision stops and reports rather than deciding. It says what it found, what the options are, and what it did not do. The orchestrator reads that report and spawns opus with it as the brief.
+
+That escape is what makes the cheaper tier safe. The risk in a downgrade is not a worse decision, it is a decision taken at the wrong level, so the cheaper agent is told never to take one.
+
+The review loop already has this shape. A `decision` finding routes to a person instead of to the fixer, and a split verdict does the same. See `pr-review-loop/protocol.md`.
+
+## The model is cost, never the bar
+
+Choosing a model changes what a run costs and nothing else. The same brief, the same gates, and the same acceptance criteria apply at every tier.
+
+A sonnet reviewer's `hold` carries exactly the weight an opus one would. A finding is not discounted because a cheaper model raised it, and "it was only sonnet" is not a reason to merge.
+
+Where a tier cannot meet the bar for some task, move that task up a tier. Never lower the bar to fit the tier.
+
+## What each agent gets today
+
+| Agent or command | Tier | Signal |
+|---|---|---|
+| `plan` | opus | writes the design brief other agents execute |
+| `api-dev` | opus | authors API types, storage, and controllers |
+| `frontend-dev` | opus | authors the interface a user meets |
+| `sre` | opus | authors manifests, CI, and deployment config whose blast radius is a cluster |
+| `/evolve` | opus | promotes findings into runbooks that steer every later agent |
+| `code-reviewer` | sonnet | reviews a diff that exists against conventions that exist |
+| `pr-adversary` | sonnet | the same, from the correctness angle, against a brief in its definition |
+| `pr-conventions-reviewer` | sonnet | the same, from the reach and conventions angle |
+| `pr-review-fixer` | sonnet | applies findings both reviewers already agreed on |
+| `tech-writer` | sonnet | writes to a brief and verifies each claim against the code |
+| `test-engineer` | sonnet | tests an implementation that already exists |
+| `operational-reviewer` | sonnet | runs the queries `operational-review/queries.md` gives verbatim into the format `report-format.md` gives |
+| `/release` | sonnet | cuts a release from a recipe |
+
+No agent in this plugin pins haiku, because every one of them writes something. Spawn haiku ad hoc for the lookups: a search agent that returns file and line and nothing else, or a monitor that watches a run.
