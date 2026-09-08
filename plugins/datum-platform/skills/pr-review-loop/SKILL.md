@@ -69,7 +69,9 @@ While they run, keep working. When both notifications arrive, read both reports 
 
 Apply `${CLAUDE_PLUGIN_ROOT}/skills/pr-review-loop/protocol.md`. In short: check the five agreement conditions and the always-escalate list, then either classify the agreed findings against `model-tiers` and spawn `pr-review-fixer` for its fix phase (with `model: haiku` when every finding is simple) with both reports and say in one line what it is doing, or put the choice to the user with a recommendation and act on the answer.
 
-When the fixer pushes a fix for any `blocker` or `warning`, fetch the new head the same way and launch both reviewers once more on it, with the same prompt and the same conditions. Only two `merge` verdicts, or two `hold` with nothing left above `nit`, unlock the fixer's ready phase. That is one re-review, not a loop: a second `hold` with a `blocker` or `warning` still standing goes to the user with both reports and a recommendation.
+When the fixer pushes a fix for any `blocker` or `warning`, fetch the new head the same way and launch the second pass on it: `pr-rereviewer` in place of a fresh `pr-adversary`, alongside `pr-conventions-reviewer`. Hand the re-reviewer the head it is checking, the head that one replaced, and the findings from both first-pass reports that the fixer applied. It settles each of those against evidence at the new head and makes one narrow pass over the fix diff, rather than reviewing the whole pull request again, which the first pass already did. The five conditions apply to the two reports unchanged, so only two `merge` verdicts, or two `hold` with nothing left above `nit`, unlock the fixer's ready phase. That is one re-review, not a loop: a second `hold` with a `blocker` or `warning` still standing goes to the user with both reports and a recommendation.
+
+A pull request that has fallen behind its base, or that a reviewer reports colliding with another open pull request, goes to `pr-rebaser` before the ready phase. It rebases in the worktree that holds the branch, keeps both sides' intent in every conflict, reruns the validators the touched paths map to, and pushes with lease. A conflict that needs a design decision comes back to the user rather than being guessed.
 
 Never post a reviewer's report to GitHub yourself. The fixer posts one comment at the end of its ready phase, and that is the only comment the loop produces.
 
@@ -90,5 +92,6 @@ Both reviewers return the same shape, defined once in `${CLAUDE_PLUGIN_ROOT}/ski
 ## Files
 
 - `protocol.md`: the output contract, the severity table, the five agreement conditions, the always-escalate list, the re-review step, and the fix and ready path.
-- `agents/pr-adversary.md`, `agents/pr-conventions-reviewer.md`, `agents/pr-review-fixer.md`: the three agents this skill drives.
+- `agents/pr-adversary.md`, `agents/pr-conventions-reviewer.md`, `agents/pr-review-fixer.md`: the three agents the first pass and the fix path use.
+- `agents/pr-rereviewer.md`: the second pass over a fixed head. `agents/pr-rebaser.md`: the rebase when the branch falls behind or collides.
 - `commands/pr-review.md`: the `/pr-review` entry point.

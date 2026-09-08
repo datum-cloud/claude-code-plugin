@@ -6,6 +6,16 @@ Notable changes to the Datum Cloud Claude Code plugins.
 
 ### Added
 
+- **PR re-reviewer** (`pr-rereviewer`, datum-platform). The second pass over a fixed head now has its own agent instead of a fresh adversary reviewing the whole pull request again. It settles each finding the fixer applied as fixed or not against evidence at the new head, tamper-tests any test the fix added, then makes one narrow pass over the fix diff for what the fix itself broke. It returns the same verdict vocabulary, so the loop's agreement conditions read it unchanged.
+
+- **PR rebaser** (`pr-rebaser`, datum-platform). Brings a pull request that fell behind its base back up to date in the worktree that holds it. Every conflict keeps both sides' intent, because dropping the other pull request's change to make a conflict go away is the failure worth preventing. It reruns the validators the touched paths map to, pushes with lease, and stops on a conflict that is a design choice rather than two additions.
+
+- **Gap verifier** (`gap-verifier`, datum-platform). Runs before anyone writes code for an issue and answers whether the gap is still there. It reproduces the claim at trunk and at the tag production tracks, checks the open pull requests touching the same files, checks the component repository when the claim is a single-service contract, and reads live state when the claim is about a cluster. It returns confirmed, already fixed, premise wrong, or in flight, with the evidence.
+
+- **Rollout verifier** (`rollout-verifier`, datum-platform). Takes a list of effects a release or a merge was expected to have and reports each one as confirmed, not yet, or contradicted, with the current value and the object's last transition time. It carries the readings that turn a check into a wrong answer: a configuration change does not roll pods, an empty result is not absence, and a restart count is cumulative. It never forces a reconcile, never mutates, and never decides what a not-yet means.
+
+- **Bookkeeper** (`bookkeeper`, datum-platform). Does the small GitHub edits that follow a merge: ticking a checkbox on an opening post, closing an issue with a supplied body, commenting, filing an issue, and parenting a sub-issue. Every body comes from the brief, it addresses nobody, and a checkbox tick is diffed to prove it changed one character before it goes through. It runs on haiku when every body is supplied verbatim.
+
 - **Model tiers** (`model-tiers`, datum-platform). One place that says which model an agent gets and why. Authoring work that carries design risk gets opus, because a wrong approach costs a review round or a bad release. Bounded work against an explicit brief gets sonnet, and read-only lookup gets haiku. An agent that meets a decision above its tier stops and reports rather than deciding, and the orchestrator escalates. The model is a cost choice and never an acceptance bar, so the same brief and the same gates hold at every tier.
 
 ### Changed

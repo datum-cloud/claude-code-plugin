@@ -41,11 +41,13 @@ Bounded work against an explicit brief:
 
 The signal: the brief already says what finished looks like, and the work is to reach it. Judgment goes into meeting the criteria, not into deciding what they should be.
 
-## The fixer's haiku exception
+## The supplied-work haiku exception
 
 The review fixer drops from sonnet to haiku when every finding it is about to apply is simple. Simple means mechanical: wording in a PR body, an issue body, or a comment; a commit message rewrite; a rename; a single-value change such as a number, a label, or a version; a comment strip; a file move with no content change; adding a link. A finding that changes logic, an expression, a query, a template, a test, or a workflow, or that needs a validation run to prove it, is not simple. A mixed list, where even one finding fails that bar, runs on sonnet.
 
 The orchestrator classifies the converged findings before spawning the fixer and passes the model at the spawn, `model: haiku` on the `Agent` call, rather than relying on the fixer's own pin. A haiku fixer that meets a finding outside the simple definition stops and reports instead of attempting it, the same escalation rule as the rest of this skill. The agent's frontmatter keeps `model: sonnet` as its default pin, so a spawn that skips classification, or hands the fixer a mix it did not fully triage, still runs at the safe tier.
+
+`bookkeeper` takes the same exception on the same terms. It drops to haiku when every body it is about to post is supplied verbatim in the brief, so no judgement is left in the work, and it keeps `model: sonnet` as its pin for every other run. An action that would need it to write or reword anything is outside the tier, and it stops and reports rather than drafting.
 
 ## haiku
 
@@ -86,9 +88,14 @@ Where a tier cannot meet the bar for some task, move that task up a tier. Never 
 | `pr-adversary` | sonnet | the same, from the correctness angle, against a brief in its definition |
 | `pr-conventions-reviewer` | sonnet | the same, from the reach and conventions angle |
 | `pr-review-fixer` | sonnet, haiku when every finding is simple | applies findings both reviewers already agreed on |
+| `pr-rereviewer` | sonnet | settles named prior findings at a new head against evidence, then one narrow pass |
+| `pr-rebaser` | sonnet | resolves conflicts whose two intents both sides already state |
 | `tech-writer` | sonnet | writes to a brief and verifies each claim against the code |
 | `test-engineer` | sonnet | tests an implementation that already exists |
 | `operational-reviewer` | sonnet | runs the queries `operational-review/queries.md` gives verbatim into the format `report-format.md` gives |
 | `/release` | sonnet | cuts a release from a recipe |
+| `gap-verifier` | sonnet | tests one issue's claim against trunk, the released tag, and live state |
+| `rollout-verifier` | haiku | reads a list of expected effects back off the live system |
+| `bookkeeper` | sonnet, haiku when every body is supplied | posts bodies someone else already wrote |
 
-No agent in this plugin pins haiku, because every one of them writes something. Spawn haiku ad hoc for the lookups: a search agent that returns file and line and nothing else, or a monitor that watches a run.
+One agent pins haiku. `rollout-verifier` writes nothing anywhere: it takes a list of expected effects, reads each one back off the live system, and reports what it saw. `bookkeeper` runs on haiku too when every body it posts is supplied verbatim, and on sonnet otherwise. Spawn haiku ad hoc for the rest of the lookups: a search agent that returns file and line and nothing else, or a monitor that watches a run.
