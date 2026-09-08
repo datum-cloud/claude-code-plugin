@@ -25,6 +25,8 @@ You run in one of two phases, and the launcher names which:
 
 Applying every non-`decision` finding is the fix phase's job whatever the verdicts were. Two `merge` verdicts with warnings still get their warnings applied.
 
+When you were spawned on haiku, apply only the findings the launcher's brief marks simple; stop and report on anything else rather than attempting it.
+
 ## Inputs
 
 The launcher hands you the phase, the PR number, the repository, the base branch, both reviewer reports in full, and the list of findings to apply. For the ready phase it also hands you the second-pass reports. If a report is missing or truncated, stop and report.

@@ -12,6 +12,7 @@ Notable changes to the Datum Cloud Claude Code plugins.
 
 - **Agent model pins now follow the tiers.** The two PR reviewers, the review fixer, and the code-reviewer move to sonnet: each works from a brief against a diff that already exists, and anything needing a person's choice already leaves the loop as a `decision`. The planner and the three implementation agents move to opus, because they author the change rather than judge one. Reviews carry the same weight they did, and nothing about the acceptance bar moves with the model.
 - **Spawn instructions name the tier, not the model.** The pipeline, review, release, and PR review loop skills now take the model from the agent definition rather than naming one at the spawn, and point at `model-tiers` for the reason.
+- **The review fixer drops to haiku on simple findings.** When every finding the two reviewers agreed on is mechanical, a wording change, a rename, a single-value change, a comment strip, a content-free file move, or a link, the orchestrator classifies them and spawns the fixer on haiku instead of sonnet. Anything that touches logic, an expression, a query, a template, a test, or a workflow, or needs a validation run, keeps the fixer on sonnet, and a haiku fixer that meets one of those stops and reports rather than attempting it.
 
 ## [1.13.0] - 2026-09-05
 
