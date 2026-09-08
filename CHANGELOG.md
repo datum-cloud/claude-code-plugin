@@ -2,6 +2,17 @@
 
 Notable changes to the Datum Cloud Claude Code plugins.
 
+## [1.14.0] - 2026-09-07
+
+### Added
+
+- **Model tiers** (`model-tiers`, datum-platform). One place that says which model an agent gets and why. Authoring work that carries design risk gets opus, because a wrong approach costs a review round or a bad release. Bounded work against an explicit brief gets sonnet, and read-only lookup gets haiku. An agent that meets a decision above its tier stops and reports rather than deciding, and the orchestrator escalates. The model is a cost choice and never an acceptance bar, so the same brief and the same gates hold at every tier.
+
+### Changed
+
+- **Agent model pins now follow the tiers.** The two PR reviewers, the review fixer, and the code-reviewer move to sonnet: each works from a brief against a diff that already exists, and anything needing a person's choice already leaves the loop as a `decision`. The planner and the three implementation agents move to opus, because they author the change rather than judge one. Reviews carry the same weight they did, and nothing about the acceptance bar moves with the model.
+- **Spawn instructions name the tier, not the model.** The pipeline, review, release, and PR review loop skills now take the model from the agent definition rather than naming one at the spawn, and point at `model-tiers` for the reason.
+
 ## [1.13.0] - 2026-09-05
 
 ### Added
