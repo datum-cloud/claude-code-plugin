@@ -30,7 +30,7 @@ The session acts without asking only when both reviews agree cleanly. All five h
 4. **The fixes are compatible.** Neither reviewer asks to remove what the other asks to add, and neither wants a file the other wants left alone.
 5. **Neither reviewer questions the premise.** Neither says the PR should be closed, split, or rewritten to a different goal.
 
-When all five hold, spawn `pr-review-fixer` for its fix phase with the PR number, the repository, the base branch, both reports in full, and the findings to apply, and say in one line what it is doing. The fixer applies every finding that is not a `decision`, whatever the verdicts were: two `merge` verdicts with warnings still get their warnings fixed. Both `merge` with no findings, or with nothing above `nit`, means the fixer goes straight through to the ready path in one run.
+When all five hold, spawn `pr-review-fixer` for its fix phase with the PR number, the repository, the base branch, both reports in full, and the findings to apply, and say in one line what it is doing. Take the model from its definition rather than naming one at the spawn; the `model-tiers` skill says why, and why a `decision` finding leaves this loop instead of being settled inside it. The fixer applies every finding that is not a `decision`, whatever the verdicts were: two `merge` verdicts with warnings still get their warnings fixed. Both `merge` with no findings, or with nothing above `nit`, means the fixer goes straight through to the ready path in one run.
 
 When any condition fails, put the choice to the human with a recommendation, then act on the answer.
 

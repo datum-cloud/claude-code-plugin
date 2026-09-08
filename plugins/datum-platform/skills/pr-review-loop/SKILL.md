@@ -1,7 +1,7 @@
 ---
 name: pr-review-loop
 description: >
-  Runs two read-only opus reviewers with different angles on a pull request,
+  Runs two read-only reviewers with different angles on a pull request,
   compares their verdicts, and either spawns the fixer to carry the PR to
   auto-merge or puts the choice to a human. Trigger on "review this PR",
   "double review", "two reviewers", "run the review agents", "I just opened a
@@ -15,7 +15,7 @@ description: >
 
 A session that writes a change is the worst judge of it. This skill runs two reviewers that do not know about each other on every pull request the session opens, then acts on what they agree on and asks a person about the rest.
 
-The reviewers are agents, so their model pin and read-only posture hold every time they run. Their tool lists do not restrict Bash. The plugin hook refuses the GitHub write surface, git mutations, and shell wrappers for the reviewer agents as a backstop against an accidental write; a determined agent could still evade it, so the reviewers' prompts carry the rule and the branch ruleset's human approval is the last gate. This skill is the protocol around them, and it holds only when the session follows it. Follow it.
+The reviewers are agents, so their model pin and read-only posture hold every time they run. Both reviewers and the fixer run on sonnet, because each works from an explicit brief against a diff that already exists, and a finding a person has to decide leaves the loop rather than being settled inside it. The `model-tiers` skill has the tiers and the escalation rule; do not override a pin at the spawn. Their tool lists do not restrict Bash. The plugin hook refuses the GitHub write surface, git mutations, and shell wrappers for the reviewer agents as a backstop against an accidental write; a determined agent could still evade it, so the reviewers' prompts carry the rule and the branch ruleset's human approval is the last gate. This skill is the protocol around them, and it holds only when the session follows it. Follow it.
 
 ## When to run
 
