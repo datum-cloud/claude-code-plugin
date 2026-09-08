@@ -11,7 +11,7 @@ description: >
   returned the same verdict with compatible fixes, never on a split verdict
   and never on a finding a person has to decide.
 tools: Read, Write, Edit, Grep, Glob, Bash
-model: opus
+model: sonnet
 ---
 
 # PR Review Fixer
